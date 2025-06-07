@@ -1,3 +1,4 @@
+// message thread display and management
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { doc, getDoc } from 'firebase/firestore';
@@ -28,7 +29,7 @@ const ChatPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch conversation data and determine the other user
+  // fetch conversation data and determine the other user
   useEffect(() => {
     const fetchConversation = async () => {
       if (!conversationId || typeof conversationId !== 'string' || !user) return;
@@ -45,7 +46,7 @@ const ChatPage: React.FC = () => {
             id: conversationDoc.id
           });
           
-          // Determine which user is the other person
+          // determine which user is the other person
           const otherUserId = conversationData.participants.find(id => id !== user.uid) || '';
           
           setOtherUser({
@@ -71,7 +72,7 @@ const ChatPage: React.FC = () => {
     fetchConversation();
   }, [conversationId, user, router]);
 
-  // Subscribe to messages
+  // subscribe to messages
   useEffect(() => {
     if (!conversationId || typeof conversationId !== 'string' || !user) return;
     
@@ -80,7 +81,6 @@ const ChatPage: React.FC = () => {
       (updatedMessages) => {
         setMessages(updatedMessages);
         
-        // Mark messages as read
         markConversationMessagesAsRead(conversationId, user.uid).catch(err => {
           console.error('Error marking messages as read:', err);
         });
@@ -90,7 +90,6 @@ const ChatPage: React.FC = () => {
     return () => unsubscribe();
   }, [conversationId, user]);
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);

@@ -1,3 +1,4 @@
+// alternative welcome screen implementation
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
@@ -16,12 +17,11 @@ const Welcome: React.FC = () => {
   const router = useRouter();
 
   const handleLogin = async (email: string, password: string) => {
-    console.log('🔍 Login attempt with email:', email);
+    console.log(' Login attempt with email:', email);
     setIsLoading(true);
     setError(null);
     try {
       await signIn(email, password);
-      // On successful login, redirect to onboarding or home page
       router.push('/onboarding');
     } catch (err: any) {
       console.error('Login error:', err);
@@ -32,7 +32,7 @@ const Welcome: React.FC = () => {
   };
 
   const handleSignUp = async (name: string, email: string, password: string) => {
-    console.log('🔍 Signup attempt initiated with:');
+    console.log(' Signup attempt initiated with:');
     console.log('- Name:', name);
     console.log('- Email:', email);
     console.log('- Password length:', password.length);
@@ -40,24 +40,22 @@ const Welcome: React.FC = () => {
     setIsLoading(true);
     setError(null);
     
-    // Verify the email format before sending
+    // verify the email format before sending
     if (!email || !email.includes('@')) {
-      console.error('❌ Invalid email format in Welcome component:', email);
+      console.error(' Invalid email format in Welcome component:', email);
       setError('Please enter a valid email address');
       setIsLoading(false);
       return;
     }
     
     try {
-      // Log before calling the hook
-      console.log('🔍 Calling signUp hook with:', name, email);
+      console.log(' Calling signUp hook with:', name, email);
       
       await signUp(email, password, name);
       
-      // On successful signup, redirect to onboarding
       router.push('/onboarding');
     } catch (err: any) {
-      console.error('❌ Signup error:', err);
+      console.error(' Signup error:', err);
       setError(err.message || 'Failed to create account');
     } finally {
       setIsLoading(false);
@@ -69,7 +67,6 @@ const Welcome: React.FC = () => {
     setError(null);
     try {
       await googleSignIn();
-      // On successful Google sign-in, redirect to onboarding or home page
       router.push('/onboarding');
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Google');
@@ -79,12 +76,11 @@ const Welcome: React.FC = () => {
   };
 
   const handleForgotPassword = async (email: string) => {
-    console.log('🔍 Password reset attempt with email:', email);
+    console.log(' Password reset attempt with email:', email);
     setIsLoading(true);
     setError(null);
     try {
       await resetUserPassword(email);
-      // Show success message
       alert('Password reset email sent. Please check your inbox.');
       setAuthMode('login');
     } catch (err: any) {
@@ -106,7 +102,7 @@ const Welcome: React.FC = () => {
           {/* Logo */}
           <div className="flex justify-center mb-6">
             <div className="w-20 h-20 rounded-full bg-primary-600 flex items-center justify-center">
-              {/* Replace with your actual logo */}
+              {/*  */}
               <span className="text-3xl font-bold text-white">MC</span>
             </div>
           </div>

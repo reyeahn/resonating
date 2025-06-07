@@ -1,3 +1,4 @@
+// custom music player interface
 import React, { useState, useEffect } from 'react';
 import { FaPlay, FaPause, FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
 
@@ -23,14 +24,14 @@ const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
   const [volume, setVolume] = useState(0.7);
   const [isMuted, setIsMuted] = useState(false);
 
-  // Initialize audio element
+  // initialize audio element
   useEffect(() => {
     if (!previewUrl) return;
 
     const audioElement = new Audio(previewUrl);
     audioElement.volume = volume;
     
-    // Set up event listeners
+    // set up event listeners
     audioElement.addEventListener('loadedmetadata', () => {
       setDuration(audioElement.duration);
     });
@@ -47,7 +48,7 @@ const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
     
     setAudio(audioElement);
     
-    // Clean up event listeners on unmount
+    // clean up event listeners on unmount
     return () => {
       if (audioElement) {
         audioElement.pause();
@@ -57,7 +58,7 @@ const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
     };
   }, [previewUrl]);
 
-  // Handle play/pause
+  // handle play/pause
   const togglePlay = () => {
     if (!audio) return;
     
@@ -70,7 +71,7 @@ const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
     setIsPlaying(!isPlaying);
   };
 
-  // Handle volume change
+  // handle volume change
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
@@ -81,7 +82,7 @@ const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
     }
   };
 
-  // Handle seeking
+  // handle seeking
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTime = parseFloat(e.target.value);
     setCurrentTime(newTime);
@@ -91,7 +92,7 @@ const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
     }
   };
 
-  // Handle mute toggle
+  // handle mute toggle
   const toggleMute = () => {
     if (!audio) return;
     
@@ -105,14 +106,13 @@ const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
     }
   };
 
-  // Format time (seconds -> MM:SS)
+  // format time 
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
   };
 
-  // If no preview URL is available
   if (!previewUrl) {
     return (
       <div className={`flex items-center ${className} p-3 bg-gray-100 dark:bg-dark-300 rounded-lg`}>
@@ -159,7 +159,7 @@ const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
         <input
           type="range"
           min="0"
-          max={duration || 30} // Default to 30 seconds for Spotify previews
+          max={duration || 30} 
           value={currentTime}
           onChange={handleSeek}
           className="flex-grow h-1 bg-gray-300 dark:bg-dark-400 rounded-full appearance-none cursor-pointer"

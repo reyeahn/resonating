@@ -1,3 +1,4 @@
+// unauthenticated user welcome screen
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
@@ -20,7 +21,7 @@ const Welcome: React.FC = () => {
     setError(null);
     try {
       await signIn(email, password);
-      // After login, go to the homepage which will handle proper redirection
+      // after login, go to the homepage which will handle proper redirection
       router.push('/');
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
@@ -40,7 +41,7 @@ const Welcome: React.FC = () => {
     try {
       console.log('Calling signUp with parameters in order: (email, password, name)');
       await signUp(email, password, name);
-      // After signup, go to the homepage which will handle proper redirection
+      // after signup, go to the homepage which will handle proper redirection
       router.push('/');
     } catch (err: any) {
       console.error('Signup error:', err);
@@ -55,7 +56,7 @@ const Welcome: React.FC = () => {
     setError(null);
     try {
       await googleSignIn();
-      // After Google sign-in, go to the homepage which will handle proper redirection
+      // after Google sign-in, go to the homepage which will handle proper redirection
       router.push('/');
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Google');
@@ -69,7 +70,6 @@ const Welcome: React.FC = () => {
     setError(null);
     try {
       await resetUserPassword(email);
-      // Show success message
       alert('Password reset email sent. Please check your inbox.');
       setAuthMode('login');
     } catch (err: any) {

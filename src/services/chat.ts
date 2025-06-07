@@ -18,6 +18,8 @@ import {
 import { db } from '@/services/firebase';
 import { createNotification } from './notifications';
 
+// unified real-time messaging system
+
 export interface ChatMessage {
   id: string;
   senderId: string;
@@ -48,29 +50,27 @@ export interface ChatConversation {
   updatedAt: Timestamp;
 }
 
-// Get or create a conversation between two users
+// get or create a conversation between two users
 export const getOrCreateConversation = async (
   userId1: string,
   userId2: string,
   relationshipType: 'match' | 'friend' | 'both' = 'friend'
 ): Promise<string> => {
   try {
-    // The conversation ID is always the same regardless of who initiates it
-    // We sort the user IDs alphabetically to ensure consistency
     const participants = [userId1, userId2].sort();
     const conversationId = `${participants[0]}_${participants[1]}`;
     
-    // Check if conversation already exists
+    // check if conversation already exists
     const conversationRef = doc(db, 'conversations', conversationId);
     const conversationDoc = await getDoc(conversationRef);
     
     if (conversationDoc.exists()) {
-      // Update relationship type if needed
+      // update relationship type if needed
       const existingData = conversationDoc.data();
       const currentType = existingData.relationshipType;
       
       if (currentType !== 'both' && currentType !== relationshipType) {
-        // If one is 'match' and one is 'friend', update to 'both'
+        // if one is 'match' and one is 'friend', update to 'both'
         await updateDoc(conversationRef, {
           relationshipType: 'both',
           updatedAt: serverTimestamp()
@@ -80,7 +80,7 @@ export const getOrCreateConversation = async (
       return conversationId;
     }
     
-    // Get user data for both participants to store names and photos
+    // get user data for both participants to store names and photos
     const [user1Doc, user2Doc] = await Promise.all([
       getDoc(doc(db, 'users', userId1)),
       getDoc(doc(db, 'users', userId2))
@@ -89,7 +89,7 @@ export const getOrCreateConversation = async (
     const userData1 = user1Doc.exists() ? user1Doc.data() : null;
     const userData2 = user2Doc.exists() ? user2Doc.data() : null;
     
-    // Create new conversation
+    // create new conversation
     await setDoc(conversationRef, {
       participants,
       participantNames: {
@@ -112,7 +112,7 @@ export const getOrCreateConversation = async (
   }
 };
 
-// Add match data to an existing conversation
+// add match data to an existing conversation
 export const addMatchDataToConversation = async (
   conversationId: string,
   matchData: {
@@ -135,7 +135,7 @@ export const addMatchDataToConversation = async (
   }
 };
 
-// Get all conversations for a user
+// get all conversations for a user
 export const getUserConversations = async (
   userId: string
 ): Promise<ChatConversation[]> => {
@@ -163,7 +163,7 @@ export const getUserConversations = async (
   }
 };
 
-// Subscribe to real-time updates for all user conversations
+// real-time updates for all user conversations
 export const subscribeToUserConversations = (
   userId: string,
   callback: (conversations: ChatConversation[]) => void
@@ -188,14 +188,14 @@ export const subscribeToUserConversations = (
   });
 };
 
-// Send a message
+// send a message
 export const sendChatMessage = async (
   conversationId: string,
   senderId: string,
   content: string
 ): Promise<string> => {
   try {
-    // Get conversation data to find recipient
+    // get conversation data to find recipient
     const conversationRef = doc(db, 'conversations', conversationId);
     const conversationDoc = await getDoc(conversationRef);
     
@@ -208,7 +208,6 @@ export const sendChatMessage = async (
       (id: string) => id !== senderId
     );
     
-    // Add the message
     const messagesRef = collection(db, 'conversations', conversationId, 'messages');
     const messageRef = await addDoc(messagesRef, {
       senderId,
@@ -217,7 +216,6 @@ export const sendChatMessage = async (
       isRead: false
     });
     
-    // Update conversation with last message info
     await updateDoc(conversationRef, {
       lastMessage: {
         content,
@@ -228,7 +226,6 @@ export const sendChatMessage = async (
       updatedAt: serverTimestamp()
     });
     
-    // Create a notification for the recipient
     const senderName = conversationData.participantNames[senderId] || 'User';
     
     await createNotification(
@@ -248,7 +245,6 @@ export const sendChatMessage = async (
   }
 };
 
-// Subscribe to messages for a conversation
 export const subscribeToConversationMessages = (
   conversationId: string,
   callback: (messages: ChatMessage[]) => void
@@ -272,13 +268,13 @@ export const subscribeToConversationMessages = (
   });
 };
 
-// Mark messages as read
+// messages as read
 export const markConversationMessagesAsRead = async (
   conversationId: string,
   readerId: string
 ): Promise<void> => {
   try {
-    // Find unread messages not sent by the reader
+    // find unread messages not sent by the reader
     const messagesQuery = query(
       collection(db, 'conversations', conversationId, 'messages'),
       where('senderId', '!=', readerId),
@@ -288,17 +284,16 @@ export const markConversationMessagesAsRead = async (
     const messagesSnapshot = await getDocs(messagesQuery);
     
     if (messagesSnapshot.empty) {
-      return; // No unread messages
+      return; // 
     }
     
-    // Create batch update
     const batch = writeBatch(db);
     
     messagesSnapshot.forEach(messageDoc => {
       batch.update(messageDoc.ref, { isRead: true });
     });
     
-    // Check if last message needs to be updated
+    // check if last message needs to be updated
     const conversationRef = doc(db, 'conversations', conversationId);
     const conversationDoc = await getDoc(conversationRef);
     
@@ -317,10 +312,9 @@ export const markConversationMessagesAsRead = async (
   }
 };
 
-// Migration function: convert match chats to unified chat system
 export const migrateMatchToConversation = async (matchId: string): Promise<string> => {
   try {
-    // Get match data
+    // get match data
     const matchRef = doc(db, 'matches', matchId);
     const matchDoc = await getDoc(matchRef);
     
@@ -331,14 +325,14 @@ export const migrateMatchToConversation = async (matchId: string): Promise<strin
     const matchData = matchDoc.data();
     const userIds = matchData.userIds;
     
-    // Create a conversation
+    // create a conversation
     const conversationId = await getOrCreateConversation(
       userIds[0],
       userIds[1],
       'match'
     );
     
-    // Add match data to conversation
+    // add match data to conversation
     await addMatchDataToConversation(
       conversationId,
       {
@@ -349,7 +343,7 @@ export const migrateMatchToConversation = async (matchId: string): Promise<strin
       }
     );
     
-    // Get all messages from the match
+    // get all messages from the match
     const messagesQuery = query(
       collection(db, 'matches', matchId, 'messages'),
       orderBy('timestamp', 'asc')
@@ -357,7 +351,7 @@ export const migrateMatchToConversation = async (matchId: string): Promise<strin
     
     const messagesSnapshot = await getDocs(messagesQuery);
     
-    // Move messages to the conversation
+    // move messages to the conversation
     const batch = writeBatch(db);
     let lastMessage: {
       content: string;
@@ -369,7 +363,7 @@ export const migrateMatchToConversation = async (matchId: string): Promise<strin
     messagesSnapshot.forEach(messageDoc => {
       const messageData = messageDoc.data();
       
-      // Create new message in the conversation
+      // create new message in the conversation
       const newMessageRef = doc(collection(db, 'conversations', conversationId, 'messages'));
       
       batch.set(newMessageRef, {
@@ -379,7 +373,7 @@ export const migrateMatchToConversation = async (matchId: string): Promise<strin
         isRead: messageData.isRead
       });
       
-      // Keep track of the most recent message
+      // keep track of the most recent message
       if (!lastMessage || messageData.timestamp > lastMessage.timestamp) {
         lastMessage = {
           content: messageData.text,
@@ -390,7 +384,7 @@ export const migrateMatchToConversation = async (matchId: string): Promise<strin
       }
     });
     
-    // Update conversation with last message if available
+    // update conversation with last message if available
     if (lastMessage) {
       const conversationRef = doc(db, 'conversations', conversationId);
       batch.update(conversationRef, {

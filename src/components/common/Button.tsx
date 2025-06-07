@@ -1,5 +1,7 @@
 import React, { ButtonHTMLAttributes } from 'react';
 
+// reusable button component with variants
+
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
   size?: 'sm' | 'md' | 'lg';

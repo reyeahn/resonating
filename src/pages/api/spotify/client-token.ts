@@ -1,19 +1,20 @@
+// spotify client credentials management
 import { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Only accept GET requests
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    console.log('🎵 CLIENT-TOKEN: Starting client credentials flow');
+    console.log(' CLIENT-TOKEN: Starting client credentials flow');
     
-    // Get client credentials from environment variables
+    // get client credentials from environment variables
     const clientId = process.env.SPOTIFY_CLIENT_ID;
     const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 
-    console.log('🎵 CLIENT-TOKEN: Environment check:', { 
+    console.log('CLIENT-TOKEN: Environment check:', { 
       hasClientId: !!clientId, 
       hasClientSecret: !!clientSecret,
       clientIdLength: clientId?.length || 0,
@@ -25,9 +26,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: 'Spotify credentials not configured' });
     }
 
-    console.log('🎵 CLIENT-TOKEN: Making token request to Spotify...');
+    console.log('CLIENT-TOKEN: Making token request to Spotify...');
 
-    // Exchange client credentials for access token
+    // exchange client credentials for access token
     const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
       headers: {
@@ -39,21 +40,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }),
     });
 
-    console.log('🎵 CLIENT-TOKEN: Token response status:', tokenResponse.status);
+    console.log(' CLIENT-TOKEN: Token response status:', tokenResponse.status);
 
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.json();
-      console.error('🎵 CLIENT-TOKEN: Error getting Spotify client token:', errorData);
+      console.error('CLIENT-TOKEN: Error getting Spotify client token:', errorData);
       return res.status(500).json({ error: 'Failed to get Spotify token' });
     }
 
     const tokenData = await tokenResponse.json();
-    console.log('🎵 CLIENT-TOKEN: Token obtained successfully');
+    console.log('CLIENT-TOKEN: Token obtained successfully');
     
-    // Return token to client (the token doesn't allow access to user data)
+    // return token to client (the token doesn't allow access to user data)
     return res.status(200).json(tokenData);
   } catch (error) {
-    console.error('🎵 CLIENT-TOKEN: Error in client-token endpoint:', error);
+    console.error(' CLIENT-TOKEN: Error in client-token endpoint:', error);
     return res.status(500).json({ error: 'Server error' });
   }
 } 

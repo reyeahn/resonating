@@ -1,5 +1,6 @@
 import React from 'react';
 
+// content container with responsive padding
 interface ContainerProps {
   children: React.ReactNode;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';

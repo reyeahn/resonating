@@ -1,3 +1,4 @@
+// analytics dashboard with charts
 import React, { useState, useEffect } from 'react';
 import { FaChartLine, FaMusic, FaHeart, FaUsers, FaSpinner, FaRedo } from 'react-icons/fa';
 import { 
@@ -32,11 +33,11 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ userId }) => {
 
     setLoading(true);
     try {
-      // Check if user has report for current week
+      // check if user has report for current week
       const hasCurrentReport = await hasCurrentWeekReport(targetUserId);
       setHasReport(hasCurrentReport);
 
-      // Get latest report
+      // latest report
       const latestReport = await getLatestWeeklyReport(targetUserId);
       setReport(latestReport);
     } catch (error) {
@@ -354,7 +355,7 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ userId }) => {
   );
 };
 
-// Helper function to get color for mood visualization
+// helper function to get color
 const getMoodColor = (mood: string, index: number): string => {
   const colors = [
     '#8B5CF6', // purple
@@ -367,7 +368,7 @@ const getMoodColor = (mood: string, index: number): string => {
     '#EC4899'  // pink
   ];
   
-  // Try to match mood to color based on sentiment
+  // match mood to color based on sentiment
   const moodLower = mood.toLowerCase();
   if (moodLower.includes('happy') || moodLower.includes('joy')) return '#F59E0B';
   if (moodLower.includes('sad') || moodLower.includes('melanchol')) return '#6366F1';

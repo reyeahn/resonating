@@ -1,3 +1,4 @@
+// user registration form with validation
 import React, { useState } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -49,7 +50,6 @@ const SignupForm: React.FC<SignupFormProps> = ({
         await onSignUp(values.name, values.email, values.password);
       } catch (error) {
         console.error('Signup error:', error);
-        // Handle error display if needed
       }
     },
   });
@@ -63,7 +63,7 @@ const SignupForm: React.FC<SignupFormProps> = ({
       <div className="text-center">
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Create an account</h2>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Join MusicConnect to share and discover music with others
+          Join to share and discover music with others
         </p>
       </div>
 

@@ -13,6 +13,8 @@ import { formatPostDate } from '@/services/timeUtils';
 import WeeklyInsights from '@/components/analytics/WeeklyInsights';
 import PhotoCarousel from '@/components/PhotoCarousel';
 
+// user profile display and editing
+
 interface Post {
   id: string;
   userId: string;
@@ -29,8 +31,8 @@ interface Post {
   comments: number;
   createdAt: Date;
   likedBy?: string[];
-  mediaUrl?: string; // Keep for backward compatibility
-  mediaUrls?: string[]; // New field for multiple photos
+  mediaUrl?: string; 
+  mediaUrls?: string[]; 
 }
 
 const Profile: React.FC = () => {
@@ -71,7 +73,7 @@ const Profile: React.FC = () => {
     try {
       setLoading(true);
       
-      // Fetch real user posts from Firestore
+      // fetch real user posts from Firestore
       const userPosts = await getUserProfilePosts(user.uid);
       
       if (userPosts.length > 0) {
@@ -83,7 +85,6 @@ const Profile: React.FC = () => {
     } catch (error) {
       console.error('Error fetching user posts:', error);
       
-      // Fallback to mocks only if there's an error and no UI is showing
       if (posts.length === 0) {
         const mockUserPosts: Post[] = [
           {
@@ -101,7 +102,6 @@ const Profile: React.FC = () => {
             createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
             likedBy: ['friend1', 'friend2'],
           },
-          // Additional mock posts as fallback
         ];
         setPosts(mockUserPosts);
       }
@@ -114,12 +114,11 @@ const Profile: React.FC = () => {
     if (!user) return;
     
     try {
-      // Get real unread notifications count using the service
+      // get real unread notifications count using the service
       const notifications = await getUnreadNotifications(user.uid);
       setUnreadNotifications(notifications.length);
     } catch (error) {
       console.error('Error fetching notifications:', error);
-      // Fallback to a default value
       setUnreadNotifications(0);
     }
   };
@@ -138,7 +137,6 @@ const Profile: React.FC = () => {
       
       setIsEditing(false);
       
-      // Show success message
       const successMessage = document.createElement('div');
       successMessage.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
       successMessage.textContent = 'Profile updated successfully!';
@@ -152,15 +150,12 @@ const Profile: React.FC = () => {
     } catch (error: any) {
       console.error('Error updating profile:', error);
       
-      // Use the enhanced error handler
       const errorType = handleFirestoreError(error, 'profile update');
       
       if (errorType === 'blocked') {
-        // Ad blocker notification already shown by handleFirestoreError
         return;
       }
       
-      // Show error for other types of failures
       let errorMessage = 'Failed to update profile. ';
       
       if (error.code === 'permission-denied') {
@@ -171,7 +166,7 @@ const Profile: React.FC = () => {
         errorMessage += 'Please try again. If the problem persists, try refreshing the page.';
       }
       
-      // Show error dialog for non-ad-blocker errors
+      // show error dialog 
       const errorDialog = document.createElement('div');
       errorDialog.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
       errorDialog.innerHTML = `
@@ -209,20 +204,18 @@ const Profile: React.FC = () => {
     if (!user) return;
 
     try {
-      // Find the post to update locally
+      // find the post to update locally
       const post = posts.find(p => p.id === postId);
       
       if (!post) return;
       
-      // Check if user has already liked the post
+      // check if user has already liked the post
       const userLiked = post.likedBy?.includes(user.uid);
       
-      // Call the real likePost service to update Firestore
+      // call the real likePost service to update Firestore
       await likePost(postId, user.uid);
       
-      // Update local state for immediate UI feedback
       if (userLiked) {
-        // User already liked the post, so unlike it
         setPosts(posts.map(post => 
           post.id === postId 
             ? { 
@@ -233,7 +226,6 @@ const Profile: React.FC = () => {
             : post
         ));
       } else {
-        // User hasn't liked the post, so like it
         setPosts(posts.map(post => 
           post.id === postId 
             ? { 
@@ -246,7 +238,6 @@ const Profile: React.FC = () => {
       }
     } catch (error) {
       console.error('Error liking post:', error);
-      // Optionally refresh posts to ensure UI is in sync with backend
       fetchUserPosts();
     }
   };
@@ -255,18 +246,16 @@ const Profile: React.FC = () => {
     if (!user || !newComment.trim()) return;
 
     try {
-      // Call the real addComment service
+      // call the real addComment service
       const commentId = await addComment(
         postId,
         user.uid,
         newComment.trim()
       );
       
-      // Get the user's display name and photo URL for the new comment
       const userDisplayName = userData?.displayName || user.displayName || 'You';
       const userPhotoURL = userData?.photoURL || user.photoURL;
       
-      // Create a new comment object
       const newCommentObj = {
         id: commentId,
         postId,
@@ -277,20 +266,17 @@ const Profile: React.FC = () => {
         createdAt: new Date(),
       };
       
-      // Add the comment to the local state
       setComments(prev => ({
         ...prev,
         [postId]: [...(prev[postId] || []), newCommentObj]
       }));
       
-      // Update the post's comment count in the local state
       setPosts(posts.map(post => 
         post.id === postId 
           ? { ...post, comments: post.comments + 1 }
           : post
       ));
       
-      // Clear the input
       setNewComment('');
     } catch (error) {
       console.error('Error adding comment:', error);
@@ -299,10 +285,9 @@ const Profile: React.FC = () => {
 
   const fetchComments = async (postId: string) => {
     try {
-      // Call the real getPostComments service
+      // call the real getPostComments service
       const postComments = await getPostComments(postId);
       
-      // Update the comments state with the fetched comments
       setComments(prev => ({ 
         ...prev, 
         [postId]: postComments 
@@ -310,7 +295,6 @@ const Profile: React.FC = () => {
     } catch (error) {
       console.error('Error fetching comments:', error);
       
-      // Fallback to mocks only if necessary
       const mockComments = [
         {
           id: `mock-${Date.now()}`,
@@ -350,7 +334,6 @@ const Profile: React.FC = () => {
       });
     } catch (error) {
       console.error('Error updating posts visibility:', error);
-      // Revert on error
       setPostsVisibility(postsVisibility);
     }
   };

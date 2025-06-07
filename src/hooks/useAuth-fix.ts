@@ -1,3 +1,4 @@
+// alternative authentication state hook
 import { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -87,12 +88,12 @@ export const useAuth = (): AuthHook => {
   }, [user, loading]);
 
   const signUp = async (email: string, password: string, displayName: string) => {
-    console.log('🔍 useAuth - signUp called with:');
+    console.log('useAuth - signUp called with:');
     console.log('- Email:', email);
     console.log('- Display Name:', displayName);
     
     if (!email || !email.includes('@')) {
-      console.error('❌ Invalid email format detected in useAuth:', email);
+      console.error('Invalid email format detected in useAuth:', email);
       throw new Error('Please enter a valid email address');
     }
     
@@ -101,10 +102,10 @@ export const useAuth = (): AuthHook => {
   };
 
   const signIn = async (email: string, password: string) => {
-    console.log('🔍 useAuth - signIn called with email:', email);
+    console.log('useAuth - signIn called with email:', email);
     
     if (!email || !email.includes('@')) {
-      console.error('❌ Invalid email format detected in useAuth:', email);
+      console.error('Invalid email format detected in useAuth:', email);
       throw new Error('Please enter a valid email address');
     }
     
@@ -120,10 +121,10 @@ export const useAuth = (): AuthHook => {
   };
 
   const resetUserPassword = async (email: string) => {
-    console.log('🔍 useAuth - resetPassword called with email:', email);
+    console.log('useAuth - resetPassword called with email:', email);
     
     if (!email || !email.includes('@')) {
-      console.error('❌ Invalid email format detected in useAuth for reset:', email);
+      console.error('Invalid email format detected in useAuth for reset:', email);
       throw new Error('Please enter a valid email address');
     }
     

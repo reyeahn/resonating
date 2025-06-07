@@ -14,6 +14,8 @@ import PhotoCarousel from '@/components/PhotoCarousel';
 import SpotifyConnect from '@/components/spotify/SpotifyConnect';
 import { formatPostDate } from '@/services/timeUtils';
 
+// matched users display and conversation access
+
 type FriendStatus = 'not_friend' | 'pending_sent' | 'pending_received' | 'friends';
 
 interface MatchedUser {
@@ -42,8 +44,8 @@ interface Post {
   comments: number;
   createdAt: Date;
   likedBy?: string[];
-  mediaUrl?: string; // Keep for backward compatibility
-  mediaUrls?: string[]; // New field for multiple photos
+  mediaUrl?: string; 
+  mediaUrls?: string[]; 
 }
 
 const Matches: React.FC = () => {
@@ -53,7 +55,7 @@ const Matches: React.FC = () => {
   const [friendRequests, setFriendRequests] = useState<any[]>([]);
   const [friends, setFriends] = useState<any[]>([]);
   
-  // Feed tab state
+  // feed tab state
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [comments, setComments] = useState<{[key: string]: any[]}>({});
@@ -63,7 +65,7 @@ const Matches: React.FC = () => {
   const router = useRouter();
   const { user, userData } = useAuth();
 
-  // Fetch matches and determine friend status
+  // fetch matches and determine friend status
   useEffect(() => {
     if (!user) return;
     
@@ -71,11 +73,10 @@ const Matches: React.FC = () => {
       setIsLoading(true);
       
       try {
-        // Get all matches
         const matches = await getUserMatches(user.uid);
-        console.log('📊 Found matches:', matches.length);
+        console.log('Found matches:', matches.length);
         
-        // Get friend requests and friends for status checking
+        // get friend requests and friends for status checking
         const [pendingRequests, userFriends] = await Promise.all([
           getPendingFriendRequests(user.uid),
           getUserFriends(user.uid)
@@ -84,11 +85,11 @@ const Matches: React.FC = () => {
         setFriendRequests(pendingRequests);
         setFriends(userFriends);
         
-        // Transform matches to MatchedUser format
+        //  matches to MatchedUser format
         const matchedUsersData: MatchedUser[] = [];
         
         for (const match of matches) {
-          // Find the other user (not the current user)
+          // find the other user 
           const otherUserId = match.userIds.find(id => id !== user.uid);
           
           if (!otherUserId || !match.users[otherUserId]) {
@@ -97,14 +98,12 @@ const Matches: React.FC = () => {
           
           const otherUser = match.users[otherUserId];
           
-          // Determine friend status
           let friendStatus: FriendStatus = 'not_friend';
           
-          // Check if already friends
           if (userFriends.some(friend => friend.id === otherUserId)) {
             friendStatus = 'friends';
           } else {
-            // Check pending requests
+            // check pending requests
             const sentRequest = pendingRequests.find(req => 
               req.toUserId === otherUserId && req.fromUserId === user.uid
             );
@@ -130,13 +129,13 @@ const Matches: React.FC = () => {
           });
         }
         
-        // Sort by most recent matches first
+        // sort by most recent matches first
         matchedUsersData.sort((a, b) => 
           new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime()
         );
         
         setMatchedUsers(matchedUsersData);
-        console.log('✅ Processed matched users:', matchedUsersData.length);
+        console.log(' Processed matched users:', matchedUsersData.length);
         
       } catch (error) {
         console.error('Error fetching matches:', error);
@@ -149,7 +148,7 @@ const Matches: React.FC = () => {
     fetchMatches();
   }, [user]);
 
-  // Fetch posts for feed tab
+  // fetch posts for feed tab
   useEffect(() => {
     if (user && activeTab === 'feed') {
       fetchPosts();
@@ -162,10 +161,10 @@ const Matches: React.FC = () => {
     try {
       setLoading(true);
       
-      // Get posts from matched users (this already filters for active posts)
+      // et posts from matched users 
       const posts = await getMatchFeedPosts(user.uid);
       
-      // Transform posts to match the expected format
+      // transform posts to match expected format
       const formattedPosts = posts.map(post => ({
         id: post.id,
         userId: post.userId,
@@ -199,20 +198,15 @@ const Matches: React.FC = () => {
     if (!user) return;
 
     try {
-      // Find the post to update locally
       const post = posts.find(p => p.id === postId);
       
       if (!post) return;
       
-      // Check if user has already liked the post
       const userLiked = post.likedBy?.includes(user.uid);
       
-      // Call the real likePost service to update Firestore
       await likePost(postId, user.uid);
       
-      // Update local state for immediate UI feedback
       if (userLiked) {
-        // User already liked the post, so unlike it
         setPosts(posts.map(post => 
           post.id === postId 
             ? { 
@@ -223,7 +217,6 @@ const Matches: React.FC = () => {
             : post
         ));
       } else {
-        // User hasn't liked the post, so like it
         setPosts(posts.map(post => 
           post.id === postId 
             ? { 
@@ -236,7 +229,6 @@ const Matches: React.FC = () => {
       }
     } catch (error) {
       console.error('Error liking post:', error);
-      // Refresh posts if there's an error to ensure UI is in sync with backend
       fetchPosts();
     }
   };
@@ -245,18 +237,18 @@ const Matches: React.FC = () => {
     if (!user || !newComment.trim()) return;
 
     try {
-      // Call the real addComment service
+      // call the real addComment service
       const commentId = await addComment(
         postId,
         user.uid,
         newComment.trim()
       );
       
-      // Get the user's display name and photo URL for the new comment
+      // get the user's display name and photo URL for the new comment
       const userDisplayName = userData?.displayName || user.displayName || 'You';
       const userPhotoURL = userData?.photoURL || user.photoURL;
       
-      // Create a new comment object
+      // create a new comment object
       const newCommentObj = {
         id: commentId || `temp-${Date.now()}`,
         userId: user.uid,
@@ -266,20 +258,17 @@ const Matches: React.FC = () => {
         createdAt: new Date(),
       };
       
-      // Add the comment to the local state
       setComments(prev => ({
         ...prev,
         [postId]: [...(prev[postId] || []), newCommentObj]
       }));
       
-      // Update the post's comment count in the local state
       setPosts(posts.map(post => 
         post.id === postId 
           ? { ...post, comments: post.comments + 1 }
           : post
       ));
       
-      // Clear the input
       setNewComment('');
     } catch (error) {
       console.error('Error adding comment:', error);
@@ -289,10 +278,9 @@ const Matches: React.FC = () => {
 
   const fetchComments = async (postId: string) => {
     try {
-      // Get real comments using the service
+      // get real comments using the service
       const postComments = await getPostComments(postId);
       
-      // Update the comments state with the fetched comments
       setComments(prev => ({ 
         ...prev, 
         [postId]: postComments 
@@ -300,7 +288,6 @@ const Matches: React.FC = () => {
     } catch (error) {
       console.error('Error fetching comments:', error);
       
-      // Fallback to showing an error message
       setComments(prev => ({ 
         ...prev, 
         [postId]: [{
@@ -328,7 +315,6 @@ const Matches: React.FC = () => {
     try {
       await sendFriendRequest(user.uid, targetUserId, userData?.displayName || 'User');
       
-      // Update local state immediately
       setMatchedUsers(prev => 
         prev.map(matchedUser => 
           matchedUser.uid === targetUserId
@@ -337,10 +323,9 @@ const Matches: React.FC = () => {
         )
       );
       
-      console.log('✅ Friend request sent successfully');
+      console.log(' Friend request sent successfully');
       
-      // Refresh both matches and posts to reflect any changes
-      // Note: The actual filtering happens server-side, but this ensures UI consistency
+      // refresh both matches and posts to reflect any changes
       if (activeTab === 'feed') {
         fetchPosts();
       }
@@ -350,18 +335,16 @@ const Matches: React.FC = () => {
     }
   };
 
-  // Add a function to refresh matches when friend status changes
+  // add a function to refresh matches when friend status changes
   const refreshMatches = async () => {
     if (!user) return;
     
     try {
       setIsLoading(true);
       
-      // Re-fetch matches (will automatically exclude new friends)
       const matches = await getUserMatches(user.uid);
-      console.log('🔄 Refreshed matches:', matches.length);
+      console.log(' Refreshed matches:', matches.length);
       
-      // Get updated friend requests and friends
       const [pendingRequests, userFriends] = await Promise.all([
         getPendingFriendRequests(user.uid),
         getUserFriends(user.uid)
@@ -370,7 +353,6 @@ const Matches: React.FC = () => {
       setFriendRequests(pendingRequests);
       setFriends(userFriends);
       
-      // Transform matches to MatchedUser format
       const matchedUsersData: MatchedUser[] = [];
       
       for (const match of matches) {
@@ -382,7 +364,6 @@ const Matches: React.FC = () => {
         
         const otherUser = match.users[otherUserId];
         
-        // Determine friend status
         let friendStatus: FriendStatus = 'not_friend';
         
         if (userFriends.some(friend => friend.id === otherUserId)) {
@@ -413,14 +394,14 @@ const Matches: React.FC = () => {
         });
       }
       
-      // Sort by most recent matches first
+      // sort by most recent matches first
       matchedUsersData.sort((a, b) => 
         new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime()
       );
       
       setMatchedUsers(matchedUsersData);
       
-      // Also refresh posts if we're on the feed tab
+      // also refresh posts if we're on the feed tab
       if (activeTab === 'feed') {
         fetchPosts();
       }
@@ -432,18 +413,18 @@ const Matches: React.FC = () => {
     }
   };
 
-  // Refresh matches when the component becomes visible or when tab changes
+  // refresh matches when the component becomes visible or when tab changes
   useEffect(() => {
     if (user && activeTab === 'matches') {
       refreshMatches();
     }
   }, [user, activeTab]);
 
-  // Listen for visibility changes to refresh when user comes back to the page
+  // listen for visibility changes to refresh when user comes back to the page
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden && user) {
-        console.log('👁️ Page became visible, refreshing matches...');
+        console.log(' Page became visible, refreshing matches...');
         refreshMatches();
       }
     };

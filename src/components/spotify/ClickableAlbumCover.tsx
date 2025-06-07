@@ -1,3 +1,4 @@
+// interactive album artwork display
 import React, { useState, useEffect, useRef } from 'react';
 import { FaPlay, FaPause } from 'react-icons/fa';
 
@@ -40,7 +41,7 @@ const ClickableAlbumCover: React.FC<ClickableAlbumCoverProps> = ({
     large: 20,
   };
 
-  // Initialize audio element
+  // initialize audio element
   useEffect(() => {
     if (!previewUrl) return;
 
@@ -69,7 +70,7 @@ const ClickableAlbumCover: React.FC<ClickableAlbumCoverProps> = ({
     };
   }, [previewUrl, onPause]);
 
-  // Global audio management - pause other audio when this one starts
+  // global audio management 
   useEffect(() => {
     if (isPlaying && audio) {
       // Pause all other audio elements
@@ -80,14 +81,13 @@ const ClickableAlbumCover: React.FC<ClickableAlbumCoverProps> = ({
         }
       });
       
-      // Dispatch custom event to notify other components
       window.dispatchEvent(new CustomEvent('audioStarted', { 
         detail: { source: 'clickable-album-cover', audio } 
       }));
     }
   }, [isPlaying, audio]);
 
-  // Listen for other audio starting
+  // listen for other audio starting
   useEffect(() => {
     const handleOtherAudioStarted = (event: any) => {
       if (event.detail.audio !== audio && audio) {
@@ -104,7 +104,7 @@ const ClickableAlbumCover: React.FC<ClickableAlbumCoverProps> = ({
   }, [audio]);
 
   const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent event bubbling
+    e.stopPropagation(); 
     
     if (!previewUrl || !audio) {
       console.log('No preview URL available for', songTitle);

@@ -1,3 +1,4 @@
+// embedded spotify player widget
 import React, { useState } from 'react';
 import { FaSpotify, FaPlay, FaPause } from 'react-icons/fa';
 import SpotifyPlayer from './SpotifyPlayer';
@@ -23,19 +24,19 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   
-  // Generate Spotify embed URL
+  // generate Spotify embed URL
   const spotifyEmbedUrl = spotifyId 
     ? `https://open.spotify.com/embed/track/${spotifyId}` 
     : null;
   
-  // Handle opening in Spotify
+  // handle opening in Spotify
   const openInSpotify = () => {
     if (spotifyId) {
       window.open(`https://open.spotify.com/track/${spotifyId}`, '_blank');
     }
   };
 
-  // Simple play/pause for basic mode
+  // simple play/pause 
   const togglePlay = () => {
     if (!previewUrl) return;
     
@@ -58,7 +59,7 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
     }
   };
   
-  // Clean up audio when component unmounts
+  // clean up audio when component unmounts
   React.useEffect(() => {
     return () => {
       if (audio) {
@@ -81,7 +82,7 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
               artistName={artist}
             />
           ) : spotifyEmbedUrl ? (
-            // Fall back to iframe embed if available
+            // fall back to iframe embed if available
             <div className="bg-white dark:bg-dark-300 rounded-lg p-2">
               <iframe
                 src={spotifyEmbedUrl}
@@ -93,7 +94,7 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
               ></iframe>
             </div>
           ) : (
-            // No playback options available
+            // no playback options available
             <div className="p-3 bg-gray-100 dark:bg-dark-300 rounded-lg flex items-center">
               <img
                 src={coverArtUrl}
@@ -122,7 +123,7 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
           </button>
         </>
       ) : (
-        // Collapsed view
+        // collapsed view
         <div className="p-3 bg-gray-100 dark:bg-dark-300 rounded-lg flex items-center">
           <img
             src={coverArtUrl}
@@ -140,9 +141,9 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
                   e.stopPropagation();
                   if (previewUrl) {
                     if (isPlaying) {
-                      togglePlay(); // Pause
+                      togglePlay(); 
                     } else {
-                      setExpanded(true); // Expand player
+                      setExpanded(true); 
                     }
                   }
                 }}

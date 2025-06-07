@@ -1,3 +1,4 @@
+// spotify account connection interface
 import React from 'react';
 import { FaSpotify } from 'react-icons/fa';
 import { connectToSpotify } from '@/services/spotify';

@@ -13,7 +13,9 @@ import {
 import { db } from '@/services/firebase';
 import { getLastResetTime, getPacificTime } from './timeUtils';
 
-// Interfaces for the matching algorithm
+// intelligent user matching and compatibility scoring
+
+// interfaces for the matching algorithm
 interface UserProfile {
   uid: string;
   questionnaire: {
@@ -65,24 +67,24 @@ interface PostWithMetadata {
   mood: string;
   moodTags?: string[];
   caption?: string;
-  mediaUrl?: string; // Single photo for backward compatibility
-  mediaUrls?: string[]; // Multiple photos
+  mediaUrl?: string; 
+  mediaUrls?: string[]; 
   createdAt: Date;
   matchScore?: number; // calculated by algorithm
 }
 
 /**
- * Calculates compatibility score between two users based on questionnaire responses
+ * calculates compatibility score between two users based on questionnaire responses
  */
 const calculateQuestionnaireCompatibility = (user1: UserProfile, user2: UserProfile): number => {
   let score = 0;
   let totalQuestions = 0;
 
-  // Compare questionnaire responses with weighted scoring
+  // compare questionnaire responses with weighted scoring
   const questionnaire1 = user1.questionnaire;
   const questionnaire2 = user2.questionnaire;
 
-  // Weekend soundtrack similarity (high weight)
+  // 3eekend soundtrack similarity (high weight)
   if (questionnaire1.weekendSoundtrack && questionnaire2.weekendSoundtrack) {
     const similarity = calculateTextSimilarity(
       questionnaire1.weekendSoundtrack.toLowerCase(),
@@ -92,7 +94,7 @@ const calculateQuestionnaireCompatibility = (user1: UserProfile, user2: UserProf
     totalQuestions += 25;
   }
 
-  // Mood genre preference (high weight)
+  // mood genre preference (high weight)
   if (questionnaire1.moodGenre && questionnaire2.moodGenre) {
     const similarity = questionnaire1.moodGenre.toLowerCase() === questionnaire2.moodGenre.toLowerCase() ? 1 : 
                       calculateTextSimilarity(questionnaire1.moodGenre.toLowerCase(), questionnaire2.moodGenre.toLowerCase());
@@ -100,14 +102,14 @@ const calculateQuestionnaireCompatibility = (user1: UserProfile, user2: UserProf
     totalQuestions += 25;
   }
 
-  // Discovery frequency (medium weight)
+  // discovery frequency (medium weight)
   if (questionnaire1.discoveryFrequency && questionnaire2.discoveryFrequency) {
     const similarity = questionnaire1.discoveryFrequency === questionnaire2.discoveryFrequency ? 1 : 0.5;
     score += similarity * 20; // 20% weight
     totalQuestions += 20;
   }
 
-  // Preferred mood tag (medium weight)
+  // preferred mood tag (medium weight)
   if (questionnaire1.preferredMoodTag && questionnaire2.preferredMoodTag) {
     const similarity = questionnaire1.preferredMoodTag.toLowerCase() === questionnaire2.preferredMoodTag.toLowerCase() ? 1 : 
                       calculateTextSimilarity(questionnaire1.preferredMoodTag.toLowerCase(), questionnaire2.preferredMoodTag.toLowerCase());
@@ -115,7 +117,7 @@ const calculateQuestionnaireCompatibility = (user1: UserProfile, user2: UserProf
     totalQuestions += 20;
   }
 
-  // Memory similarity (lower weight)
+  // memory similarity (lower weight)
   if (questionnaire1.favoriteSongMemory && questionnaire2.favoriteSongMemory) {
     const similarity = calculateTextSimilarity(
       questionnaire1.favoriteSongMemory.toLowerCase(),
@@ -129,7 +131,7 @@ const calculateQuestionnaireCompatibility = (user1: UserProfile, user2: UserProf
 };
 
 /**
- * Calculates audio feature compatibility between user preferences and a post
+ * calculates audio feature compatibility between user preferences and a post
  */
 const calculateAudioFeatureCompatibility = (userPreferences: UserProfile['musicPreferences'], postAudioFeatures: any): number => {
   if (!userPreferences?.audioFeatures || !postAudioFeatures) return 0.5; // neutral score
@@ -137,7 +139,7 @@ const calculateAudioFeatureCompatibility = (userPreferences: UserProfile['musicP
   const userFeatures = userPreferences.audioFeatures;
   let score = 0;
 
-  // Compare each audio feature with appropriate weighting
+  // compare each audio feature with appropriate weighting
   const features = [
     { name: 'valence', weight: 0.25 },      // Mood compatibility
     { name: 'energy', weight: 0.25 },       // Energy level compatibility  
@@ -154,11 +156,11 @@ const calculateAudioFeatureCompatibility = (userPreferences: UserProfile['musicP
       let similarity: number;
       
       if (feature.name === 'tempo') {
-        // For tempo, calculate percentage difference
+        // for tempo, calculate percentage difference
         const diff = Math.abs(userValue - postValue) / Math.max(userValue, postValue);
         similarity = Math.max(0, 1 - diff);
       } else {
-        // For other features (0-1 scale), calculate absolute difference
+        // for other features (0-1 scale), calculate absolute difference
         similarity = 1 - Math.abs(userValue - postValue);
       }
       
@@ -170,7 +172,7 @@ const calculateAudioFeatureCompatibility = (userPreferences: UserProfile['musicP
 };
 
 /**
- * Simple text similarity calculation using Jaccard similarity
+ * simple text similarity calculation using Jaccard similarity
  */
 const calculateTextSimilarity = (text1: string, text2: string): number => {
   const words1 = new Set(text1.split(/\s+/).filter(word => word.length > 2));
@@ -183,14 +185,12 @@ const calculateTextSimilarity = (text1: string, text2: string): number => {
 };
 
 /**
- * Updates user music preferences based on their engagement patterns
- * This is a background operation that may be blocked by ad blockers - handle gracefully
+ * updates user music preferences based on their engagement patterns
  */
 export const updateUserMusicPreferences = async (userId: string): Promise<void> => {
   try {
-    console.log(`🎵 Starting music preference update for user: ${userId}`);
+    console.log(` Starting music preference update for user: ${userId}`);
     
-    // Get user's liked posts and engagement history
     const swipesQuery = query(
       collection(db, 'swipes'),
       where('swiperId', '==', userId),
@@ -204,14 +204,14 @@ export const updateUserMusicPreferences = async (userId: string): Promise<void> 
       likedPostIds.push(doc.data().postId);
     });
 
-    console.log(`📊 Found ${likedPostIds.length} liked posts for preference analysis`);
+    console.log(` Found ${likedPostIds.length} liked posts for preference analysis`);
     
     if (likedPostIds.length === 0) {
-      console.log('📊 No liked posts found - skipping preference update');
+      console.log(' No liked posts found - skipping preference update');
       return;
     }
 
-    // Fetch full post data for liked posts
+    // fetch full post data for liked posts
     const audioFeatures: any[] = [];
     const genres: string[] = [];
     const moodTags: string[] = [];
@@ -223,7 +223,7 @@ export const updateUserMusicPreferences = async (userId: string): Promise<void> 
         if (postDoc.exists()) {
           const postData = postDoc.data();
           
-          console.log(`📊 Analyzing post ${postId}:`, {
+          console.log(` Analyzing post ${postId}:`, {
             hasAudioFeatures: !!postData.song?.audioFeatures,
             hasGenres: !!postData.song?.genres,
             genres: postData.song?.genres || [],
@@ -251,46 +251,43 @@ export const updateUserMusicPreferences = async (userId: string): Promise<void> 
       }
     }
 
-    console.log(`📊 Processed ${processedPosts} posts for preference calculation`);
-    console.log(`📊 Found ${audioFeatures.length} audio features, ${genres.length} genres, ${moodTags.length} mood tags`);
+    console.log(` Processed ${processedPosts} posts for preference calculation`);
+    console.log(` Found ${audioFeatures.length} audio features, ${genres.length} genres, ${moodTags.length} mood tags`);
 
-    // Calculate average preferences from liked content
     const preferences = {
       genres: [...new Set(genres)],
       audioFeatures: calculateAverageAudioFeatures(audioFeatures),
       moodTags: [...new Set(moodTags)]
     };
 
-    console.log(`📊 Calculated preferences:`, {
+    console.log(` Calculated preferences:`, {
       uniqueGenres: preferences.genres.length,
       audioFeatures: preferences.audioFeatures,
       uniqueMoodTags: preferences.moodTags.length
     });
 
-    // Update user document with calculated preferences
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {
       musicPreferences: preferences,
       lastPreferencesUpdate: getPacificTime()
     });
 
-    console.log(`✅ Successfully updated music preferences for user: ${userId}`);
+    console.log(` Successfully updated music preferences for user: ${userId}`);
 
   } catch (error: any) {
-    // Check if this is a network blocking error
     if (error.message?.includes('ERR_BLOCKED_BY_CLIENT') || 
         error.code === 'ERR_BLOCKED_BY_CLIENT' ||
         error.toString().includes('blocked')) {
-      console.warn('⚠️ User preference update blocked by ad blocker - this is non-critical and will be retried later');
+      console.warn(' User preference update blocked by ad blocker - this is non-critical and will be retried later');
     } else {
-      console.error('❌ Error updating user music preferences:', error);
+      console.error(' Error updating user music preferences:', error);
     }
-    // Don't throw the error - this is a background operation that shouldn't break the main flow
+    // don't throw the error 
   }
 };
 
 /**
- * Get current user music preferences for testing/debugging
+ * get current user music preferences for testing/debugging
  */
 export const getUserMusicPreferences = async (userId: string): Promise<any> => {
   try {
@@ -310,11 +307,11 @@ export const getUserMusicPreferences = async (userId: string): Promise<any> => {
 };
 
 /**
- * Manually trigger preference update (for testing)
+ * nanually trigger preference update
  */
 export const triggerPreferenceUpdate = async (userId: string): Promise<boolean> => {
   try {
-    console.log(`🔄 Manually triggering preference update for user: ${userId}`);
+    console.log(` Manually triggering preference update for user: ${userId}`);
     await updateUserMusicPreferences(userId);
     return true;
   } catch (error) {
@@ -324,7 +321,7 @@ export const triggerPreferenceUpdate = async (userId: string): Promise<boolean> 
 };
 
 /**
- * Calculates average audio features from an array of feature objects
+ * calculates average audio features from an array of feature objects
  */
 const calculateAverageAudioFeatures = (features: any[]): any => {
   if (features.length === 0) return {};
@@ -352,7 +349,6 @@ const calculateAverageAudioFeatures = (features: any[]): any => {
 
   if (validFeatureCount === 0) return {};
 
-  // Return averages
   return {
     valence: sums.valence / validFeatureCount,
     energy: sums.energy / validFeatureCount,
@@ -363,23 +359,23 @@ const calculateAverageAudioFeatures = (features: any[]): any => {
 };
 
 /**
- * Main function to get intelligently matched posts for a user (max 15 per day)
+ * main function to get intelligently matched posts for a user 
  */
 export const getIntelligentMatches = async (userId: string): Promise<PostWithMetadata[]> => {
   try {
-    // First, try to update user preferences (background operation - may be blocked)
+    // first, try to update user preferences 
     try {
       await updateUserMusicPreferences(userId);
     } catch (error: any) {
-      // Silently handle preference update failures - don't block the main matching
+      // silently handle preference update failures 
       if (error.message?.includes('ERR_BLOCKED_BY_CLIENT') || error.toString().includes('blocked')) {
-        console.warn('⚠️ Background preference update blocked - continuing with existing preferences');
+        console.warn(' Background preference update blocked - continuing with existing preferences');
       } else {
-        console.warn('⚠️ Background preference update failed - continuing with existing preferences:', error);
+        console.warn(' Background preference update failed - continuing with existing preferences:', error);
       }
     }
 
-    // Get current user profile
+    // get current user profile
     const userDoc = await getDoc(doc(db, 'users', userId));
     if (!userDoc.exists()) throw new Error('User not found');
     
@@ -388,10 +384,8 @@ export const getIntelligentMatches = async (userId: string): Promise<PostWithMet
       ...userDoc.data()
     } as UserProfile;
 
-    // Get user's friends list
     const userFriends = currentUser.friends || [];
     
-    // Get user's matched users
     const matchesQuery = query(
       collection(db, 'matches'),
       where('userIds', 'array-contains', userId)
@@ -407,11 +401,11 @@ export const getIntelligentMatches = async (userId: string): Promise<PostWithMet
       }
     });
 
-    // Combine friends and matched users to exclude from discover
+    // combine friends and matched users to exclude from discover
     const excludedUserIds = [...new Set([...userFriends, ...matchedUserIds])];
     console.log(`Excluding ${excludedUserIds.length} users from discover (friends + matches)`);
 
-    // Get posts that haven't been swiped yet
+    // get posts that haven't been swiped yet
     const swipesQuery = query(
       collection(db, 'swipes'),
       where('swiperId', '==', userId)
@@ -424,8 +418,7 @@ export const getIntelligentMatches = async (userId: string): Promise<PostWithMet
       swipedPostIds.push(doc.data().postId);
     });
 
-    // Get all recent posts (excluding user's own and already swiped)
-    // Only get ACTIVE posts from the last 24-hour window (after 9 AM PT reset)
+    // get all recent posts
     const lastReset = getLastResetTime();
     const postsQuery = query(
       collection(db, 'posts'),
@@ -433,16 +426,16 @@ export const getIntelligentMatches = async (userId: string): Promise<PostWithMet
       where('createdAt', '>', Timestamp.fromDate(lastReset)),
       orderBy('userId'),
       orderBy('createdAt', 'desc'),
-      limit(100) // Get more posts to have options for intelligent selection
+      limit(100) 
     );
 
     const postsSnapshot = await getDocs(postsQuery);
     const candidatePosts: PostWithMetadata[] = [];
 
-    console.log(`📊 Found ${postsSnapshot.docs.length} posts from database query`);
-    console.log(`📊 Already swiped on ${swipedPostIds.length} posts`);
+    console.log(` Found ${postsSnapshot.docs.length} posts from database query`);
+    console.log(` Already swiped on ${swipedPostIds.length} posts`);
 
-    // Filter and score posts
+    // filter and score posts
     let processedCount = 0;
     let skippedAlreadySwiped = 0;
     let skippedExcludedUsers = 0;
@@ -451,7 +444,7 @@ export const getIntelligentMatches = async (userId: string): Promise<PostWithMet
     for (const postDoc of postsSnapshot.docs) {
       if (swipedPostIds.includes(postDoc.id)) {
         skippedAlreadySwiped++;
-        continue; // Skip already swiped
+        continue; // skip already swiped
       }
 
       const postData = postDoc.data();
@@ -463,7 +456,7 @@ export const getIntelligentMatches = async (userId: string): Promise<PostWithMet
         continue;
       }
 
-      // Get the post author's profile for compatibility scoring
+      // get the post author's profile for compatibility scoring
       const authorDoc = await getDoc(doc(db, 'users', postData.userId));
       if (!authorDoc.exists()) {
         skippedMissingAuthor++;
@@ -475,22 +468,21 @@ export const getIntelligentMatches = async (userId: string): Promise<PostWithMet
         ...authorDoc.data()
       } as UserProfile;
 
-      // Calculate comprehensive match score
       let matchScore = 0;
 
-      // 1. Questionnaire compatibility (40% weight)
+      // questionnaire compatibility (40% weight)
       const questionnaireScore = calculateQuestionnaireCompatibility(currentUser, authorProfile);
       matchScore += questionnaireScore * 0.4;
 
-      // 2. Audio feature compatibility (30% weight)
+      // audio feature compatibility (30% weight)
       const audioScore = calculateAudioFeatureCompatibility(currentUser.musicPreferences, postData.song?.audioFeatures);
       matchScore += audioScore * 0.3;
 
-      // 3. Mood tag compatibility (20% weight)
+      // mood tag compatibility (20% weight)
       const moodScore = calculateMoodCompatibility(currentUser, postData);
       matchScore += moodScore * 0.2;
 
-      // 4. Engagement pattern bonus (10% weight)
+      // engagement pattern bonus (10% weight)
       const engagementScore = calculateEngagementBonus(currentUser, authorProfile);
       matchScore += engagementScore * 0.1;
 
@@ -528,36 +520,36 @@ export const getIntelligentMatches = async (userId: string): Promise<PostWithMet
       processedCount++;
     }
 
-    console.log(`📊 Processing summary:`);
+    console.log(` Processing summary:`);
     console.log(`  - Posts processed: ${processedCount}`);
     console.log(`  - Skipped (already swiped): ${skippedAlreadySwiped}`);
     console.log(`  - Skipped (excluded users): ${skippedExcludedUsers}`);
     console.log(`  - Skipped (missing author): ${skippedMissingAuthor}`);
     console.log(`  - Final candidate posts: ${candidatePosts.length}`);
 
-    // Sort by match score and return top 15
+ 
     candidatePosts.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
     
     const finalPosts = candidatePosts.slice(0, 15);
-    console.log(`📊 Returning ${finalPosts.length} posts for discover feed`);
+    console.log(` Returning ${finalPosts.length} posts for discover feed`);
     
     return finalPosts;
 
   } catch (error: any) {
     console.error('Error getting intelligent matches:', error);
     
-    // Check if this is a blocking error and provide helpful info
+    // check if this is a blocking error and provide helpful info
     if (error.message?.includes('ERR_BLOCKED_BY_CLIENT') || error.toString().includes('blocked')) {
-      console.warn('⚠️ Intelligent matching blocked by ad blocker - falling back to basic posts');
+      console.warn(' Intelligent matching blocked by ad blocker - falling back to basic posts');
     }
     
-    // Return empty array instead of throwing - let the discover page handle fallback
+    // return empty array instead of throwing - let the discover page handle fallback
     return [];
   }
 };
 
 /**
- * Calculate mood compatibility between user and post
+ * calculate mood compatibility between user and post
  */
 const calculateMoodCompatibility = (user: UserProfile, postData: any): number => {
   const userMoodTags = user.musicPreferences?.moodTags || [];
@@ -575,20 +567,20 @@ const calculateMoodCompatibility = (user: UserProfile, postData: any): number =>
 };
 
 /**
- * Calculate bonus score based on engagement patterns
+ * calculate bonus score based on engagement patterns
  */
 const calculateEngagementBonus = (user: UserProfile, author: UserProfile): number => {
   let bonus = 0;
   
-  // Bonus if user has previously matched with similar users
+  // bonus if user has previously matched with similar users
   if (user.engagementHistory?.matchedUsers && author.engagementHistory?.matchedUsers) {
     const commonMatches = user.engagementHistory.matchedUsers.filter(id =>
       author.engagementHistory?.matchedUsers?.includes(id)
     );
-    bonus += commonMatches.length * 0.1; // Small bonus for mutual connections
+    bonus += commonMatches.length * 0.1; 
   }
   
-  // Bonus for similar posting patterns
+  // bonus for similar posting patterns
   if (user.engagementHistory?.postedMoods && author.engagementHistory?.postedMoods) {
     const moodSimilarity = calculateTextSimilarity(
       user.engagementHistory.postedMoods.join(' '),
@@ -597,5 +589,5 @@ const calculateEngagementBonus = (user: UserProfile, author: UserProfile): numbe
     bonus += moodSimilarity * 0.2;
   }
   
-  return Math.min(bonus, 1); // Cap at 1.0
+  return Math.min(bonus, 1); 
 }; 

@@ -1,3 +1,4 @@
+// daily song posting interface with media upload
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { doc, setDoc, updateDoc, serverTimestamp, getDoc, arrayUnion } from 'firebase/firestore';
@@ -37,7 +38,7 @@ const PostSong: React.FC = () => {
   const router = useRouter();
   const { user, userData, refreshUserData } = useAuth();
 
-  // If user is not logged in, redirect to home
+  // if user is not logged in, redirect to home
   useEffect(() => {
     if (!user) {
       router.push('/');
@@ -46,25 +47,24 @@ const PostSong: React.FC = () => {
     }
   }, [user, userData, router]);
 
-  // Search for songs using hybrid approach: standard API + preview enhancement
+  // search for songs using hybrid approach: standard API + preview enhancement
   const searchSongs = async (query: string) => {
     setIsSearching(true);
     setSearchResults([]);
     
     try {
-      // Step 1: Use standard Spotify API for reliable search results and metadata
-      console.log('🎵 Searching with standard Spotify API for:', query);
+      console.log(' Searching with standard Spotify API for:', query);
       
       const response = await fetch(`/api/spotify/search?q=${encodeURIComponent(query)}&limit=10`);
       
       if (response.ok) {
         const data = await response.json();
-        console.log('🎵 Standard API response:', data);
+        console.log(' Standard API response:', data);
         
         if (data.tracks && data.tracks.items && data.tracks.items.length > 0) {
           const standardResults: SongData[] = data.tracks.items.map((track: any) => {
-            console.log(`🎵 Track "${track.name}" album images:`, track.album.images.length);
-            console.log(`🎵 Track "${track.name}" preview URL:`, track.preview_url || 'NONE');
+            console.log(` Track "${track.name}" album images:`, track.album.images.length);
+            console.log(` Track "${track.name}" preview URL:`, track.preview_url || 'NONE');
             
             return {
               title: track.name,
@@ -76,26 +76,24 @@ const PostSong: React.FC = () => {
             };
           });
           
-          console.log('🎵 Standard results:', standardResults.length, 'tracks');
+          console.log(' Standard results:', standardResults.length, 'tracks');
           const tracksWithPreviews = standardResults.filter(r => r.previewUrl).length;
-          console.log('🎵 Tracks with preview URLs:', tracksWithPreviews, 'out of', standardResults.length);
+          console.log(' Tracks with preview URLs:', tracksWithPreviews, 'out of', standardResults.length);
           
-          // Step 2: Enhance tracks without preview URLs using preview finder
           if (tracksWithPreviews < standardResults.length) {
-            console.log('🎵 Enhancing tracks without preview URLs...');
+            console.log(' Enhancing tracks without preview URLs...');
             
             const enhancedResults = await Promise.all(
               standardResults.map(async (song) => {
-                // If song already has preview URL, return as is
                 if (song.previewUrl) {
                   return song;
                 }
                 
-                // Try to find preview URL using preview finder
+                // try to find preview URL using preview finder
                 try {
-                  console.log(`🎵 Looking for preview for "${song.title}" by ${song.artist}...`);
+                  console.log(` Looking for preview for "${song.title}" by ${song.artist}...`);
                   
-                  // Call our preview finder API (but only use it for preview URLs)
+                  // call  preview finder API (but only use it for preview URLs)
                   const previewResponse = await fetch(
                     `/api/spotify/search-with-previews?query=${encodeURIComponent(`${song.title} ${song.artist}`)}&limit=1`
                   );
@@ -105,29 +103,29 @@ const PostSong: React.FC = () => {
                     const previewTrack = previewData.tracks?.items?.[0];
                     
                     if (previewTrack?.preview_url) {
-                      console.log(`🎵 ✅ Found preview URL for "${song.title}":`, previewTrack.preview_url);
+                      console.log(` Found preview URL for "${song.title}":`, previewTrack.preview_url);
                       return {
-                        ...song, // Keep all original metadata (album artwork, etc.)
-                        previewUrl: previewTrack.preview_url // Only add the preview URL
+                        ...song, // keep all original metadata (album artwork, etc.)
+                        previewUrl: previewTrack.preview_url 
                       };
                     }
                   }
                 } catch (previewError) {
-                  console.log(`🎵 ❌ Could not enhance "${song.title}":`, previewError);
+                  console.log(` Could not enhance "${song.title}":`, previewError);
                 }
                 
-                console.log(`🎵 ⚠️ No preview found for "${song.title}"`);
+                console.log(` No preview found for "${song.title}"`);
                 return song;
               })
             );
             
             const finalTracksWithPreviews = enhancedResults.filter(r => r.previewUrl).length;
-            console.log('🎵 🎉 Final enhanced results:', finalTracksWithPreviews, 'out of', enhancedResults.length, 'tracks have previews');
+            console.log(' Final enhanced results:', finalTracksWithPreviews, 'out of', enhancedResults.length, 'tracks have previews');
             
             setSearchResults(enhancedResults);
           } else {
-            // All tracks already have previews, no enhancement needed
-            console.log('🎵 ✨ All tracks already have preview URLs, no enhancement needed');
+            // all tracks already have previews, no enhancement needed
+            console.log(' All tracks already have preview URLs, no enhancement needed');
             setSearchResults(standardResults);
           }
           
@@ -135,15 +133,15 @@ const PostSong: React.FC = () => {
           return;
         }
       } else {
-        console.log('❌ Standard API failed with status:', response.status);
+        console.log(' Standard API failed with status:', response.status);
         const errorText = await response.text();
-        console.log('❌ Error details:', errorText);
+        console.log(' Error details:', errorText);
       }
       
-      // Fallback to mock data if the API fails
+      // fallback to mock data if the API fails
       console.log('Using mock data for song search');
       
-      // Mock data with popular songs
+      // mock data with popular songs
       const mockData: SongData[] = [
         {
           title: 'Blinding Lights',
@@ -179,13 +177,13 @@ const PostSong: React.FC = () => {
         }
       ];
       
-      // Filter based on query
+      // filter based on query
       const filteredResults = mockData.filter(song => 
         song.title.toLowerCase().includes(query.toLowerCase()) || 
         song.artist.toLowerCase().includes(query.toLowerCase())
       );
       
-      // Simulate network delay for a more realistic experience
+      // simulate network delay 
       setTimeout(() => {
         setSearchResults(filteredResults);
         setIsSearching(false);
@@ -213,25 +211,21 @@ const PostSong: React.FC = () => {
     if (e.target.files && e.target.files.length > 0) {
       const files = Array.from(e.target.files);
       
-      // Check if we already have files and limit to 5 total
       if (mediaFiles.length + files.length > 5) {
         alert('You can only upload up to 5 photos');
         return;
       }
       
-      // Check if files are images
       if (!files.every(file => file.type.startsWith('image/'))) {
         alert('Please upload image files only');
         return;
       }
       
-      // Check file sizes (max 5MB each)
       if (files.some(file => file.size > 5 * 1024 * 1024)) {
         alert('One or more files exceed 5MB');
         return;
       }
       
-      // Add to existing files
       const newMediaFiles = [...mediaFiles, ...files];
       const newMediaPreviews = [...mediaPreviews, ...files.map(file => URL.createObjectURL(file))];
       
@@ -244,13 +238,11 @@ const PostSong: React.FC = () => {
     const newMediaFiles = mediaFiles.filter((_, i) => i !== index);
     const newMediaPreviews = mediaPreviews.filter((_, i) => i !== index);
     
-    // Revoke URL for removed preview
     URL.revokeObjectURL(mediaPreviews[index]);
     
     setMediaFiles(newMediaFiles);
     setMediaPreviews(newMediaPreviews);
     
-    // Adjust current index if needed
     if (currentPhotoIndex >= newMediaFiles.length && newMediaFiles.length > 0) {
       setCurrentPhotoIndex(newMediaFiles.length - 1);
     } else if (newMediaFiles.length === 0) {
@@ -261,7 +253,6 @@ const PostSong: React.FC = () => {
   const handleSubmit = async () => {
     if (!user || !selectedSong) return;
     
-    // Validate mood is selected
     if (!mood) {
       setError('Please select a mood for your song');
       return;
@@ -275,35 +266,34 @@ const PostSong: React.FC = () => {
     try {
       console.log('Starting song submission process');
       
-      // Fetch audio features if we have a Spotify ID
       if (selectedSong.spotifyId) {
         try {
-          console.log('🎵 Fetching audio features for Spotify ID:', selectedSong.spotifyId);
+          console.log(' Fetching audio features for Spotify ID:', selectedSong.spotifyId);
           setIsFetchingAudioFeatures(true);
           audioFeatures = await getAudioFeatures(selectedSong.spotifyId, mood, selectedSong.artist);
           
           if (audioFeatures) {
-            console.log('🎵 ✅ Audio features generated successfully:', {
+            console.log(' Audio features generated successfully:', {
               valence: audioFeatures.valence,
               energy: audioFeatures.energy,
               danceability: audioFeatures.danceability,
               tempo: audioFeatures.tempo
             });
           } else {
-            console.log('🎵 ⚠️ No audio features available for this track');
+            console.log(' No audio features available for this track');
           }
         } catch (audioError) {
-          console.error('🎵 ❌ Error fetching audio features:', audioError);
-          // Continue with post creation even if audio features fail
+          console.error(' Error fetching audio features:', audioError);
+          // continue with post creation even if audio features fail
           audioFeatures = null;
         } finally {
           setIsFetchingAudioFeatures(false);
         }
       } else {
-        console.log('🎵 No Spotify ID available, skipping audio features');
+        console.log(' No Spotify ID available, skipping audio features');
       }
       
-      // Upload media files if exists
+      // upload media files if exists
       if (mediaFiles.length > 0) {
         console.log('Uploading media files...');
         
@@ -312,7 +302,7 @@ const PostSong: React.FC = () => {
           const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}_${file.name}_${i}`);
           const uploadTask = uploadBytesResumable(storageRef, file);
           
-          // Set up upload progress monitoring
+          // set up upload progress monitoring
           uploadTask.on(
             'state_changed',
             (snapshot) => {
@@ -327,7 +317,7 @@ const PostSong: React.FC = () => {
             }
           );
           
-          // Wait for upload to complete
+          // wait for upload to complete
           await uploadTask;
           const downloadURL = await getDownloadURL(storageRef);
           mediaUrls.push(downloadURL);
@@ -336,16 +326,16 @@ const PostSong: React.FC = () => {
         console.log('Media uploaded successfully:', mediaUrls);
       }
       
-      // Create the song object with all available data
+      // create the song object with all available data
       const songObject: any = {
         title: selectedSong.title,
         artist: selectedSong.artist,
         album: selectedSong.album || selectedSong.artist,
         coverArtUrl: selectedSong.coverArtUrl,
-        genres: [] // Could be enhanced later with Spotify genres
+        genres: [] 
       };
       
-      // Only add optional fields if they have actual values
+
       if (selectedSong.spotifyId) {
         songObject.spotifyId = selectedSong.spotifyId;
       }
@@ -364,7 +354,7 @@ const PostSong: React.FC = () => {
         hasPreviewUrl: !!selectedSong.previewUrl
       });
       
-      // Create post with audio features
+      // create post with audio features
       const postRef = await createPost(
         user.uid, 
         user.displayName || 'Anonymous', 
@@ -376,23 +366,21 @@ const PostSong: React.FC = () => {
         selectedSong.previewUrl || '',
         mood,
         caption,
-        audioFeatures, // Pass audio features
-        songObject, // Pass complete song object
-        mediaUrls // Pass media URLs
+        audioFeatures, 
+        songObject, 
+        mediaUrls 
       );
       
       console.log('Post created successfully with ID:', postRef);
       
-      // Update user document to indicate they've posted today
+      // update user document to indicate they've posted today
       const userRef = doc(db, 'users', user.uid);
       
-      // First get the latest user data to ensure we're working with the most current state
       const currentUserDoc = await getDoc(userRef);
       
-      // Create both server timestamp and manual timestamp for reliability
       const now = new Date();
       
-      // Now update the user document with the hasPostedToday flag set to true
+      // now update the user document with the hasPostedToday flag set to true
       await updateDoc(userRef, {
         hasPostedToday: true,
         lastPostDate: serverTimestamp(),
@@ -400,14 +388,14 @@ const PostSong: React.FC = () => {
         posts: arrayUnion(postRef)
       });
       
-      console.log('✅ User document updated with hasPostedToday: true');
+      console.log(' User document updated with hasPostedToday: true');
       
-      // Refresh user data
+      // refresh user data
       await refreshUserData();
       
-      console.log('✅ User data refreshed');
+      console.log(' User data refreshed');
       
-      // Reset form
+      // reset form
       setSelectedSong(null);
       setSearchResults([]);
       setSearchQuery('');
@@ -419,7 +407,7 @@ const PostSong: React.FC = () => {
       setCurrentPhotoIndex(0);
       setUploadProgress(0);
       
-      // Force navigation with page refresh to ensure state sync
+      // force navigation with page refresh to ensure state sync
       console.log('🔄 Navigating to matches with fresh data load...');
       window.location.href = '/matches';
       

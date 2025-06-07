@@ -1,3 +1,4 @@
+// debugging interface for music matching
 import React, { useState, useEffect } from 'react';
 import { getUserMusicPreferences, triggerPreferenceUpdate } from '@/services/matchingAlgorithm';
 import { useAuth } from '@/hooks/useAuth';
@@ -46,7 +47,7 @@ const MusicPreferencesDebug: React.FC = () => {
     try {
       const success = await triggerPreferenceUpdate(user.uid);
       if (success) {
-        // Reload preferences after update
+        // reload preferences after update
         await loadPreferences();
         alert('Preferences updated successfully! Check console for details.');
       } else {
@@ -141,9 +142,9 @@ const MusicPreferencesDebug: React.FC = () => {
         )}
 
         <div className="text-xs text-gray-600 dark:text-gray-400">
-          💡 This component helps test music preference updates. Check the browser console for detailed logs.
+           This component helps test music preference updates. Check the browser console for detailed logs.
           <br />
-          🎯 To test: Like some posts in Discover, then click "Update Preferences"
+           To test: Like some posts in Discover, then click "Update Preferences"
         </div>
       </div>
     </div>

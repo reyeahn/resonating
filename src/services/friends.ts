@@ -17,6 +17,8 @@ import {
 import { db } from '@/services/firebase';
 import { createNotification } from './notifications';
 
+// friend requests and relationship management
+
 export interface FriendRequest {
   id: string;
   fromUserId: string;
@@ -35,10 +37,8 @@ export interface Friend {
   lastActive?: Timestamp;
 }
 
-// Get all friends for a user
 export const getUserFriends = async (userId: string): Promise<Friend[]> => {
   try {
-    // Get the user document
     const userDoc = await getDoc(doc(db, 'users', userId));
     
     if (!userDoc.exists()) {
@@ -52,10 +52,9 @@ export const getUserFriends = async (userId: string): Promise<Friend[]> => {
       return [];
     }
     
-    // Get friend user documents
     const friends: Friend[] = [];
     
-    // Using Promise.all to make parallel requests
+    // using Promise.all to make parallel requests
     const friendPromises = friendIds.map(async (friendId: string) => {
       const friendDoc = await getDoc(doc(db, 'users', friendId));
       
@@ -81,15 +80,12 @@ export const getUserFriends = async (userId: string): Promise<Friend[]> => {
   }
 };
 
-// Subscribe to real-time updates for a user's friends list
 export const subscribeToUserFriends = (
   userId: string,
   callback: (friends: Friend[]) => void
 ) => {
-  // Create a listener for the user document
   const userDocRef = doc(db, 'users', userId);
   
-  // This will fire whenever the user document changes
   return onSnapshot(userDocRef, async (snapshot) => {
     if (snapshot.exists()) {
       const userData = snapshot.data();
@@ -100,10 +96,9 @@ export const subscribeToUserFriends = (
         return;
       }
       
-      // Get friend user documents
       const friends: Friend[] = [];
       
-      // Using Promise.all to make parallel requests
+      // using Promise.all to make parallel requests
       const friendPromises = friendIds.map(async (friendId: string) => {
         const friendDoc = await getDoc(doc(db, 'users', friendId));
         
@@ -129,14 +124,13 @@ export const subscribeToUserFriends = (
   });
 };
 
-// Send a friend request
 export const sendFriendRequest = async (
   fromUserId: string, 
   toUserId: string,
   fromUserName: string
 ): Promise<string> => {
   try {
-    // Check if request already exists
+    // check if request already exists
     const existingRequestsQuery = query(
       collection(db, 'friendRequests'),
       where('fromUserId', '==', fromUserId),
@@ -147,11 +141,10 @@ export const sendFriendRequest = async (
     const existingRequests = await getDocs(existingRequestsQuery);
     
     if (!existingRequests.empty) {
-      // Request already exists, return the ID
       return existingRequests.docs[0].id;
     }
     
-    // Create new friend request
+    // create new friend request
     const requestRef = await addDoc(collection(db, 'friendRequests'), {
       fromUserId,
       toUserId,
@@ -159,11 +152,10 @@ export const sendFriendRequest = async (
       createdAt: serverTimestamp()
     });
     
-    // Get the sender's photo URL
     const fromUserDoc = await getDoc(doc(db, 'users', fromUserId));
     const fromUserPhotoURL = fromUserDoc.exists() ? fromUserDoc.data()?.photoURL : null;
     
-    // Create a notification for the recipient
+    // create a notification for the recipient
     await createNotification(
       toUserId,
       'friend_request',
@@ -181,7 +173,7 @@ export const sendFriendRequest = async (
   }
 };
 
-// Get pending friend requests for a user
+// get pending friend requests for a user
 export const getPendingFriendRequests = async (userId: string): Promise<FriendRequest[]> => {
   try {
     const requestsQuery = query(
@@ -193,11 +185,10 @@ export const getPendingFriendRequests = async (userId: string): Promise<FriendRe
     const requestsSnapshot = await getDocs(requestsQuery);
     const requests: FriendRequest[] = [];
     
-    // Using Promise.all to make parallel requests
+    // using Promise.all to make parallel requests
     const requestPromises = requestsSnapshot.docs.map(async (docSnapshot) => {
       const requestData = docSnapshot.data();
       
-      // Get the sender's user information
       const senderDoc = await getDoc(doc(db, 'users', requestData.fromUserId));
       const senderData = senderDoc.exists() ? senderDoc.data() : null;
       
@@ -221,7 +212,7 @@ export const getPendingFriendRequests = async (userId: string): Promise<FriendRe
   }
 };
 
-// Accept a friend request
+// accept a friend request
 export const acceptFriendRequest = async (requestId: string): Promise<void> => {
   try {
     const requestRef = doc(db, 'friendRequests', requestId);
@@ -240,16 +231,16 @@ export const acceptFriendRequest = async (requestId: string): Promise<void> => {
     const fromUserId = requestData.fromUserId;
     const toUserId = requestData.toUserId;
     
-    // Update friend request status
+    // update friend request status
     await updateDoc(requestRef, {
       status: 'accepted'
     });
     
-    // Add each user to the other's friends list
+    // add each user to the other's friends list
     const fromUserRef = doc(db, 'users', fromUserId);
     const toUserRef = doc(db, 'users', toUserId);
     
-    // Get user data to create notifications
+    // get user data to create notifications
     const fromUserDoc = await getDoc(fromUserRef);
     const toUserDoc = await getDoc(toUserRef);
     
@@ -258,7 +249,7 @@ export const acceptFriendRequest = async (requestId: string): Promise<void> => {
     const fromUserPhotoURL = fromUserDoc.data()?.photoURL || null;
     const toUserPhotoURL = toUserDoc.data()?.photoURL || null;
     
-    // Update both users' friends lists
+    // update both users' friends lists
     await updateDoc(fromUserRef, {
       friends: arrayUnion(toUserId)
     });
@@ -267,7 +258,7 @@ export const acceptFriendRequest = async (requestId: string): Promise<void> => {
       friends: arrayUnion(fromUserId)
     });
     
-    // Create notifications for both users
+    // create notifications for both users
     await createNotification(
       fromUserId,
       'friend_request_accepted',
@@ -293,7 +284,7 @@ export const acceptFriendRequest = async (requestId: string): Promise<void> => {
   }
 };
 
-// Reject a friend request
+// reject a friend request
 export const rejectFriendRequest = async (requestId: string): Promise<void> => {
   try {
     const requestRef = doc(db, 'friendRequests', requestId);
@@ -309,7 +300,7 @@ export const rejectFriendRequest = async (requestId: string): Promise<void> => {
       throw new Error('Friend request is not pending');
     }
     
-    // Update friend request status
+    // update friend request status
     await updateDoc(requestRef, {
       status: 'rejected'
     });
@@ -319,13 +310,12 @@ export const rejectFriendRequest = async (requestId: string): Promise<void> => {
   }
 };
 
-// Remove a friend
+// remove a friend
 export const removeFriend = async (userId: string, friendId: string): Promise<void> => {
   try {
     const userRef = doc(db, 'users', userId);
     const friendRef = doc(db, 'users', friendId);
     
-    // Remove each user from the other's friends list
     await updateDoc(userRef, {
       friends: arrayRemove(friendId)
     });
@@ -339,13 +329,11 @@ export const removeFriend = async (userId: string, friendId: string): Promise<vo
   }
 };
 
-// Find users by username or email
+// find users by username or email
 export const findUsers = async (searchQuery: string, currentUserId: string): Promise<Friend[]> => {
   try {
-    // First check if the query is an email
     const isEmail = searchQuery.includes('@');
     
-    // Get users matching the query
     const usersQuery = isEmail 
       ? query(collection(db, 'users'), where('email', '==', searchQuery))
       : query(collection(db, 'users'), where('displayName', '>=', searchQuery), where('displayName', '<=', searchQuery + '\uf8ff'));
@@ -354,7 +342,6 @@ export const findUsers = async (searchQuery: string, currentUserId: string): Pro
     const users: Friend[] = [];
     
     usersSnapshot.forEach(doc => {
-      // Don't include the current user in the results
       if (doc.id !== currentUserId) {
         const userData = doc.data();
         

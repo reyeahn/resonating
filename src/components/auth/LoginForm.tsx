@@ -1,3 +1,4 @@
+// user login form with validation
 import React, { useState } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -44,7 +45,6 @@ const LoginForm: React.FC<LoginFormProps> = ({
         await onLogin(values.email, values.password);
       } catch (error) {
         console.error('Login error:', error);
-        // Handle error display if needed
       }
     },
   });

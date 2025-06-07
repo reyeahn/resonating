@@ -1,3 +1,4 @@
+// app settings and preferences management
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -11,7 +12,7 @@ const Settings: React.FC = () => {
   const router = useRouter();
   const { user, userData, logout, updateUserProfile } = useAuth();
   
-  // Profile information
+  // profile information
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [bio, setBio] = useState('');
@@ -19,20 +20,20 @@ const Settings: React.FC = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   
-  // Settings sections
+  // settings sections
   const [activeSection, setActiveSection] = useState('profile');
   
-  // Notification settings
+  // notification settings
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [matchNotifications, setMatchNotifications] = useState(true);
   const [commentNotifications, setCommentNotifications] = useState(true);
   
-  // Privacy settings
+  // privacy settings
   const [profileVisibility, setProfileVisibility] = useState('public');
   const [showActivity, setShowActivity] = useState(true);
   
-  // Loading & error states
+  // loading & error states
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -44,13 +45,13 @@ const Settings: React.FC = () => {
       setBio(userData.bio || '');
       setPhotoURL(userData.photoURL || '');
       
-      // Initialize notification settings from user data if available
+      // initialize notification settings from user data if available
       setEmailNotifications(userData.settings?.emailNotifications ?? true);
       setPushNotifications(userData.settings?.pushNotifications ?? true);
       setMatchNotifications(userData.settings?.matchNotifications ?? true);
       setCommentNotifications(userData.settings?.commentNotifications ?? true);
       
-      // Initialize privacy settings
+      // initialize privacy settings
       setProfileVisibility(userData.settings?.profileVisibility || 'public');
       setShowActivity(userData.settings?.showActivity ?? true);
     }
@@ -60,7 +61,7 @@ const Settings: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
     
-    // File validation
+    // file validation
     if (!file.type.match('image.*')) {
       setErrorMessage('Please select an image file');
       return;
@@ -76,10 +77,10 @@ const Settings: React.FC = () => {
       setUploadProgress(0);
       setErrorMessage('');
       
-      // Create a storage reference
+      // create a storage reference
       const storageRef = ref(storage, `user-profiles/${user.uid}`);
       
-      // Upload file with progress monitoring
+      // upload file with progress monitoring
       const uploadTask = uploadBytesResumable(storageRef, file);
       
       uploadTask.on(
@@ -93,19 +94,19 @@ const Settings: React.FC = () => {
           setIsUploading(false);
         },
         async () => {
-          // Upload completed successfully
+          // upload completed successfully
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
           setPhotoURL(downloadURL);
           setIsUploading(false);
           
-          // Update user profile with new photo URL
+          // update user profile with new photo URL
           try {
             const userRef = doc(db, 'users', user.uid);
             await updateDoc(userRef, {
               photoURL: downloadURL
             });
             
-            // Also update in auth if available
+            // also update in auth if available
             if (updateUserProfile) {
               await updateUserProfile({ photoURL: downloadURL });
             }
@@ -138,7 +139,7 @@ const Settings: React.FC = () => {
         bio,
       });
       
-      // Also update in auth if available
+      // also update in auth if available
       if (updateUserProfile) {
         await updateUserProfile({ displayName });
       }
@@ -211,7 +212,6 @@ const Settings: React.FC = () => {
   };
   
   const handleDeleteAccount = () => {
-    // For safety, just show a confirmation for now
     if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
       alert('This feature is coming soon. Please contact support to delete your account.');
     }

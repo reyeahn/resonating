@@ -1,3 +1,4 @@
+// image gallery carousel for posts
 import React, { useState, useRef } from 'react';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
@@ -23,7 +24,7 @@ const PhotoCarousel: React.FC<PhotoCarouselProps> = ({
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
 
-  // If no media URLs, don't render anything
+  // if no media URLs, don't render 
   if (!mediaUrls || mediaUrls.length === 0) {
     return null;
   }
@@ -40,7 +41,7 @@ const PhotoCarousel: React.FC<PhotoCarouselProps> = ({
     setCurrentIndex(index);
   };
 
-  // Handle touch events for swiping
+  // handle touch events 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
     setTouchStart(e.targetTouches[0].clientX);
@@ -118,7 +119,7 @@ const PhotoCarousel: React.FC<PhotoCarouselProps> = ({
         </>
       )}
 
-      {/* Dot Indicators (only show for 2-5 photos to avoid clutter) */}
+      {/* Dot Indicators  */}
       {mediaUrls.length > 1 && mediaUrls.length <= 5 && (
         <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1.5">
           {mediaUrls.map((_, index) => (
@@ -136,7 +137,7 @@ const PhotoCarousel: React.FC<PhotoCarouselProps> = ({
         </div>
       )}
 
-      {/* Swipe indicator for mobile (when more than 1 photo) - only show briefly */}
+      {/* Swipe indicator for mobile  */}
       {mediaUrls.length > 1 && (
         <div className="absolute top-2 left-2 opacity-50 pointer-events-none">
           <div className="text-white text-xs bg-black bg-opacity-40 px-2 py-1 rounded-md backdrop-blur-sm">

@@ -21,6 +21,8 @@ import { getLastResetTime, getPacificTime } from './timeUtils';
 import { getUserPosts } from './posts';
 import { getUserFriends } from './friends';
 
+// mutual like detection and match conversations
+
 export interface Match {
   id: string;
   userIds: string[];
@@ -66,17 +68,13 @@ export interface Message {
 }
 
 /**
- * Get all matches for a user (matches persist indefinitely)
- * BACKWARD COMPATIBLE with existing match documents
- * EXCLUDES users who are already friends
+ * Get all matches for a user 
  */
 export const getUserMatches = async (userId: string): Promise<Match[]> => {
   try {
-    // Get user's current friends first
     const userFriends = await getUserFriends(userId);
     const friendIds = new Set(userFriends.map(friend => friend.id));
     
-    // First try the new format with isActive filter
     let matchesQuery = query(
       collection(db, 'matches'),
       where('userIds', 'array-contains', userId),
@@ -85,7 +83,7 @@ export const getUserMatches = async (userId: string): Promise<Match[]> => {
 
     let snapshot = await getDocs(matchesQuery);
     
-    // If no matches found with isActive filter, try without it (for old matches)
+    // if no matches found with isActive filter, try without it
     if (snapshot.empty) {
       matchesQuery = query(
         collection(db, 'matches'),
@@ -99,21 +97,21 @@ export const getUserMatches = async (userId: string): Promise<Match[]> => {
     for (const matchDoc of snapshot.docs) {
       const matchData = matchDoc.data();
       
-      // Skip if explicitly marked as inactive
+      // skip if explicitly marked as inactive
       if (matchData.isActive === false) {
         continue;
       }
       
-      // Find the other user in this match
+      // find the other user in this match
       const otherUserId = matchData.userIds.find((id: string) => id !== userId);
       
-      // Skip if the other user is already a friend
+      // skip if the other user is already a friend
       if (otherUserId && friendIds.has(otherUserId)) {
         console.log(`Skipping match with ${otherUserId} - already friends`);
         continue;
       }
       
-      // Get user details for all users in the match
+      // get user details for all users in the match
       const users: { [userId: string]: any } = {};
       for (const matchUserId of matchData.userIds) {
         const userDoc = await getDoc(doc(db, 'users', matchUserId));
@@ -133,20 +131,16 @@ export const getUserMatches = async (userId: string): Promise<Match[]> => {
         users,
         createdAt: matchData.createdAt?.toDate() || new Date(),
         lastMessage: (() => {
-          // Safely handle lastMessage conversion
           if (!matchData.lastMessage && !matchData.lastMessageAt) return undefined;
           
           const lastMsg = matchData.lastMessage || matchData.lastMessageAt;
           
-          // If it's already a Date object, return it
           if (lastMsg instanceof Date) return lastMsg;
           
-          // If it's a Firestore Timestamp, convert it
           if (lastMsg && typeof lastMsg.toDate === 'function') {
             return lastMsg.toDate();
           }
           
-          // If it's a string or other format, try to create a Date
           if (lastMsg) {
             try {
               return new Date(lastMsg);
@@ -158,11 +152,11 @@ export const getUserMatches = async (userId: string): Promise<Match[]> => {
           
           return undefined;
         })(),
-        isActive: matchData.isActive !== false // Default to true if not specified
+        isActive: matchData.isActive !== false // default to true if not specified
       });
     }
 
-    // Sort by last message or creation date
+    // sort by last message or creation date
     matches.sort((a, b) => {
       const aTime = a.lastMessage || a.createdAt;
       const bTime = b.lastMessage || b.createdAt;
@@ -178,11 +172,11 @@ export const getUserMatches = async (userId: string): Promise<Match[]> => {
 };
 
 /**
- * Get current posts from matched users (only active posts within 24-hour window)
+ * get current posts from matched users 
  */
 export const getMatchedUsersPosts = async (userId: string): Promise<MatchedUserPost[]> => {
   try {
-    // First get all user's matches
+    // first get all user's matches
     const matches = await getUserMatches(userId);
     
     if (matches.length === 0) {
@@ -192,16 +186,15 @@ export const getMatchedUsersPosts = async (userId: string): Promise<MatchedUserP
     const matchedPosts: MatchedUserPost[] = [];
     const lastReset = getLastResetTime();
 
-    // For each match, get the matched user's current active posts
     for (const match of matches) {
       const otherUserId = match.userIds.find(id => id !== userId);
       
       if (!otherUserId) continue;
 
-      // Get active posts from this matched user
+      // get active posts from this matched user
       const userPosts = await getUserPosts(otherUserId);
       
-      // Convert to MatchedUserPost format
+      // convert to MatchedUserPost format
       for (const post of userPosts) {
         const userData = match.users[otherUserId];
         
@@ -228,7 +221,7 @@ export const getMatchedUsersPosts = async (userId: string): Promise<MatchedUserP
       }
     }
 
-    // Sort by most recent posts first
+    // sort by most recent posts first
     matchedPosts.sort((a, b) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
@@ -241,7 +234,7 @@ export const getMatchedUsersPosts = async (userId: string): Promise<MatchedUserP
 };
 
 /**
- * Check if two users are matched
+ * check if two users are matched
  */
 export const areUsersMatched = async (userId1: string, userId2: string): Promise<boolean> => {
   try {
@@ -264,17 +257,15 @@ export const areUsersMatched = async (userId1: string, userId2: string): Promise
 };
 
 /**
- * Create a new match between two users
+ * create a new match between two users
  */
 export const createMatch = async (userId1: string, userId2: string): Promise<string> => {
   try {
-    // Check if match already exists
     const existingMatch = await areUsersMatched(userId1, userId2);
     if (existingMatch) {
       throw new Error('Match already exists between these users');
     }
 
-    // Get user data for both users
     const user1Doc = await getDoc(doc(db, 'users', userId1));
     const user2Doc = await getDoc(doc(db, 'users', userId2));
 
@@ -313,7 +304,7 @@ export const createMatch = async (userId1: string, userId2: string): Promise<str
 };
 
 /**
- * Get match details by ID
+ * get match details by ID
  */
 export const getMatchById = async (matchId: string): Promise<Match | null> => {
   try {
@@ -325,7 +316,7 @@ export const getMatchById = async (matchId: string): Promise<Match | null> => {
 
     const matchData = matchDoc.data();
     
-    // Get user details for all users in the match
+    // get user details for all users in the match
     const users: { [userId: string]: any } = {};
     for (const userId of matchData.userIds) {
       const userDoc = await getDoc(doc(db, 'users', userId));
@@ -345,20 +336,16 @@ export const getMatchById = async (matchId: string): Promise<Match | null> => {
       users,
       createdAt: matchData.createdAt?.toDate() || new Date(),
       lastMessage: (() => {
-        // Safely handle lastMessage conversion
         if (!matchData.lastMessage && !matchData.lastMessageAt) return undefined;
         
         const lastMsg = matchData.lastMessage || matchData.lastMessageAt;
         
-        // If it's already a Date object, return it
         if (lastMsg instanceof Date) return lastMsg;
         
-        // If it's a Firestore Timestamp, convert it
         if (lastMsg && typeof lastMsg.toDate === 'function') {
           return lastMsg.toDate();
         }
         
-        // If it's a string or other format, try to create a Date
         if (lastMsg) {
           try {
             return new Date(lastMsg);
@@ -379,7 +366,7 @@ export const getMatchById = async (matchId: string): Promise<Match | null> => {
 };
 
 /**
- * Get match statistics for a user
+ * get match statistics for a user
  */
 export const getMatchStats = async (userId: string): Promise<{
   totalMatches: number;
@@ -411,7 +398,7 @@ export const getMatchStats = async (userId: string): Promise<{
   }
 };
 
-// Get real-time updates for matches
+// get real-time updates for matches
 export const subscribeToUserMatches = (
   userId: string, 
   callback: (matches: Match[]) => void
@@ -434,7 +421,7 @@ export const subscribeToUserMatches = (
   });
 };
 
-// Get messages for a match
+// get messages for a match
 export const getMatchMessages = async (matchId: string): Promise<Message[]> => {
   try {
     const messagesQuery = query(
@@ -459,7 +446,7 @@ export const getMatchMessages = async (matchId: string): Promise<Message[]> => {
   }
 };
 
-// Get real-time updates for messages
+// get real-time updates for messages
 export const subscribeToMatchMessages = (
   matchId: string,
   callback: (messages: Message[]) => void
@@ -481,14 +468,13 @@ export const subscribeToMatchMessages = (
   });
 };
 
-// Send a message
+// send a message
 export const sendMessage = async (
   matchId: string,
   userId: string,
   text: string
 ): Promise<string> => {
   try {
-    // Add message
     const messagesRef = collection(db, 'matches', matchId, 'messages');
     const messageRef = await addDoc(messagesRef, {
       text,
@@ -497,7 +483,7 @@ export const sendMessage = async (
       isRead: false
     });
     
-    // Update match with last message
+    // update match with last message
     await updateDoc(doc(db, 'matches', matchId), {
       lastMessage: serverTimestamp()
     });
@@ -509,7 +495,7 @@ export const sendMessage = async (
   }
 };
 
-// Mark all messages as read
+// mark all messages as read
 export const markMessagesAsRead = async (
   matchId: string,
   userId: string
@@ -523,7 +509,6 @@ export const markMessagesAsRead = async (
     
     const messagesSnapshot = await getDocs(messagesQuery);
     
-    // Use batch to update multiple messages
     const batch = writeBatch(db);
     messagesSnapshot.forEach(doc => {
       batch.update(doc.ref, { isRead: true });
@@ -531,7 +516,6 @@ export const markMessagesAsRead = async (
     
     await batch.commit();
     
-    // Update match's last message if needed
     const matchDoc = await getDoc(doc(db, 'matches', matchId));
     const matchData = matchDoc.data();
     
@@ -546,10 +530,9 @@ export const markMessagesAsRead = async (
   }
 };
 
-// Delete a match (both users will lose the conversation)
+// delete a match (both users will lose the conversation)
 export const deleteMatch = async (matchId: string): Promise<void> => {
   try {
-    // First delete all messages
     const messagesQuery = query(collection(db, 'matches', matchId, 'messages'));
     const messagesSnapshot = await getDocs(messagesQuery);
     
@@ -560,7 +543,6 @@ export const deleteMatch = async (matchId: string): Promise<void> => {
     
     await batch.commit();
     
-    // Then delete the match
     await deleteDoc(doc(db, 'matches', matchId));
   } catch (error) {
     console.error('Error deleting match:', error);
@@ -568,10 +550,7 @@ export const deleteMatch = async (matchId: string): Promise<void> => {
   }
 };
 
-/**
- * Migration function to update existing match documents
- * Call this once to update old matches to new format
- */
+
 export const migrateExistingMatches = async (): Promise<void> => {
   try {
     console.log('Starting match migration...');
@@ -585,7 +564,6 @@ export const migrateExistingMatches = async (): Promise<void> => {
     snapshot.forEach((matchDoc) => {
       const matchData = matchDoc.data();
       
-      // Check if match needs migration
       const needsMigration = (
         matchData.isActive === undefined || 
         (!matchData.lastMessage && !matchData.lastMessageAt)
@@ -594,12 +572,10 @@ export const migrateExistingMatches = async (): Promise<void> => {
       if (needsMigration) {
         const updates: any = {};
         
-        // Add isActive field if missing
         if (matchData.isActive === undefined) {
           updates.isActive = true;
         }
         
-        // Add lastMessage field if missing
         if (!matchData.lastMessage && !matchData.lastMessageAt) {
           updates.lastMessage = matchData.createdAt || new Date();
         } else if (matchData.lastMessageAt && !matchData.lastMessage) {

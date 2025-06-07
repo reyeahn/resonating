@@ -1,5 +1,6 @@
 import React, { InputHTMLAttributes, forwardRef } from 'react';
 
+// styled input field component
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;

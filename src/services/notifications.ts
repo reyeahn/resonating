@@ -1,3 +1,4 @@
+// push notification management and delivery
 import { db } from '@/services/firebase';
 import {
   collection,
@@ -91,7 +92,7 @@ export const createNotification = async (
   relatedId?: string
 ): Promise<string> => {
   try {
-    // Build notification data object, only including relatedId if it exists
+    // build notification data object, only including relatedId if it exists
     const notificationData: any = {
       userId,
       type,
@@ -103,7 +104,7 @@ export const createNotification = async (
       createdAt: serverTimestamp(),
     };
     
-    // Only add relatedId if it's not undefined
+    // only add relatedId if it's not undefined
     if (relatedId !== undefined) {
       notificationData.relatedId = relatedId;
     }

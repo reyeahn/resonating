@@ -15,6 +15,8 @@ import { createMatch } from './matches';
 import { getActivePosts } from './posts';
 import { getPacificTime } from './timeUtils';
 
+// tinder-style swipe mechanics and tracking
+
 export interface Swipe {
   id?: string;
   swiperId: string;
@@ -25,7 +27,7 @@ export interface Swipe {
 }
 
 /**
- * Record a swipe and check for matches
+ * record a swipe and check for matches
  */
 export const recordSwipe = async (
   swiperId: string,
@@ -34,7 +36,7 @@ export const recordSwipe = async (
   direction: 'left' | 'right'
 ): Promise<string | null> => {
   try {
-    // Record the swipe
+    // record the swipe
     const swipeData: Omit<Swipe, 'id'> = {
       swiperId,
       postId,
@@ -45,7 +47,7 @@ export const recordSwipe = async (
 
     await addDoc(collection(db, 'swipes'), swipeData);
 
-    // If it's a right swipe (like), check for a match
+    // if it's a right swipe (like), check for a match
     if (direction === 'right') {
       const matchId = await checkForMatch(swiperId, postUserId);
       return matchId;
@@ -58,12 +60,9 @@ export const recordSwipe = async (
   }
 };
 
-/**
- * Check if a mutual like creates a match
- */
+
 const checkForMatch = async (swiperId: string, postUserId: string): Promise<string | null> => {
   try {
-    // Check if the post user has also liked any of the swiper's posts
     const swiperPostsQuery = query(
       collection(db, 'posts'),
       where('userId', '==', swiperId)
@@ -71,10 +70,9 @@ const checkForMatch = async (swiperId: string, postUserId: string): Promise<stri
     const swiperPosts = await getDocs(swiperPostsQuery);
     
     if (swiperPosts.empty) {
-      return null; // Swiper has no posts to be liked back
+      return null; 
     }
 
-    // Check if post user has liked any of swiper's posts
     const swiperPostIds = swiperPosts.docs.map(doc => doc.id);
     
     for (const swiperPostId of swiperPostIds) {
@@ -88,14 +86,14 @@ const checkForMatch = async (swiperId: string, postUserId: string): Promise<stri
       const mutualSwipes = await getDocs(mutualSwipeQuery);
       
       if (!mutualSwipes.empty) {
-        // Mutual like found! Create a match
+
         try {
           const matchId = await createMatch(swiperId, postUserId);
           console.log(`Match created: ${matchId} between ${swiperId} and ${postUserId}`);
           return matchId;
         } catch (matchError) {
           console.error('Error creating match:', matchError);
-          // If match already exists, that's okay
+
           if (matchError instanceof Error && matchError.message.includes('already exists')) {
             return null;
           }
@@ -104,24 +102,19 @@ const checkForMatch = async (swiperId: string, postUserId: string): Promise<stri
       }
     }
 
-    return null; // No mutual like found
+    return null; 
   } catch (error) {
     console.error('Error checking for match:', error);
     return null;
   }
 };
 
-/**
- * Get posts that haven't been swiped by the user (active posts only)
- * EXCLUDES posts from friends and matched users
- */
+
 export const getUnswiped = async (userId: string): Promise<string[]> => {
   try {
-    // Get user's friends list
     const userDoc = await getDoc(doc(db, 'users', userId));
     const userFriends = userDoc.exists() ? (userDoc.data().friends || []) : [];
     
-    // Get user's matched users
     const matchesQuery = query(
       collection(db, 'matches'),
       where('userIds', 'array-contains', userId)
@@ -137,11 +130,11 @@ export const getUnswiped = async (userId: string): Promise<string[]> => {
       }
     });
 
-    // Combine friends and matched users to exclude from discover
+    // combine friends and matched users to exclude from discover
     const excludedUserIds = [...new Set([...userFriends, ...matchedUserIds])];
     console.log(`getUnswiped: Excluding ${excludedUserIds.length} users (friends + matches)`);
 
-    // Get all posts the user has swiped on
+    // get all posts the user has swiped on
     const swipesQuery = query(
       collection(db, 'swipes'),
       where('swiperId', '==', userId)
@@ -149,10 +142,10 @@ export const getUnswiped = async (userId: string): Promise<string[]> => {
     const swipesSnapshot = await getDocs(swipesQuery);
     const swipedPostIds = swipesSnapshot.docs.map(doc => doc.data().postId);
 
-    // Get all active posts
+    // get all active posts
     const activePosts = await getActivePosts();
     
-    // Filter out user's own posts, already swiped posts, and posts from friends/matches
+    // filter out user's own posts, already swiped posts, and posts from friends/matches
     const unswipedPosts = activePosts.filter(post => 
       post.userId !== userId && 
       post.id && 
@@ -169,7 +162,7 @@ export const getUnswiped = async (userId: string): Promise<string[]> => {
 };
 
 /**
- * Check if user has swiped on a specific post
+ * check if user has swiped on a specific post
  */
 export const hasUserSwiped = async (userId: string, postId: string): Promise<boolean> => {
   try {
@@ -188,7 +181,7 @@ export const hasUserSwiped = async (userId: string, postId: string): Promise<boo
 };
 
 /**
- * Get user's swipe history (for analytics)
+ * get user's swipe history (for analytics)
  */
 export const getUserSwipeHistory = async (
   userId: string, 
@@ -198,8 +191,7 @@ export const getUserSwipeHistory = async (
     const swipesQuery = query(
       collection(db, 'swipes'),
       where('swiperId', '==', userId),
-      // orderBy('timestamp', 'desc'), // Enable if you need ordering
-      // limit(limit) // Enable if you need limiting
+
     );
     
     const swipesSnapshot = await getDocs(swipesQuery);
@@ -213,7 +205,7 @@ export const getUserSwipeHistory = async (
       } as Swipe);
     });
     
-    // Sort by timestamp descending (most recent first)
+    // sort by timestamp descending (most recent first)
     swipes.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
     
     return swipes.slice(0, limit);
@@ -224,7 +216,7 @@ export const getUserSwipeHistory = async (
 };
 
 /**
- * Get swipe statistics for a user
+ * get swipe statistics for a user
  */
 export const getSwipeStats = async (userId: string): Promise<{
   totalSwipes: number;

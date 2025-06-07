@@ -1,3 +1,4 @@
+// firebase app initialization and configuration
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
@@ -12,14 +13,14 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
+// initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
 /**
- * Utility to check if an error is caused by ad blocker blocking
+ * utility to check if an error is caused by ad blocker blocking
  */
 export const isBlockedByAdBlocker = (error: any): boolean => {
   if (!error) return false;
@@ -38,16 +39,14 @@ export const isBlockedByAdBlocker = (error: any): boolean => {
 };
 
 /**
- * Show a user-friendly notification when ad blockers interfere
+ * show a user-friendly notification when ad blockers interfere
  */
 export const showAdBlockerNotification = (operation: string = 'operation') => {
-  // Only show notification once per session to avoid spam
   const sessionKey = `adBlockerNotified_${operation}`;
   if (sessionStorage.getItem(sessionKey)) return;
   
   sessionStorage.setItem(sessionKey, 'true');
   
-  // Create and show notification
   const notification = document.createElement('div');
   notification.className = 'fixed top-4 right-4 bg-orange-500 text-white px-4 py-3 rounded-lg shadow-lg z-50 max-w-sm';
   notification.innerHTML = `
@@ -66,7 +65,6 @@ export const showAdBlockerNotification = (operation: string = 'operation') => {
   
   document.body.appendChild(notification);
   
-  // Auto-remove after 8 seconds
   setTimeout(() => {
     if (notification.parentElement) {
       notification.parentElement.removeChild(notification);
@@ -75,7 +73,7 @@ export const showAdBlockerNotification = (operation: string = 'operation') => {
 };
 
 /**
- * Enhanced error handler for Firestore operations
+ * enhanced error handler for Firestore operations
  */
 export const handleFirestoreError = (error: any, operation: string = 'operation', silent: boolean = false) => {
   if (isBlockedByAdBlocker(error)) {

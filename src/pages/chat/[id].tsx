@@ -1,3 +1,4 @@
+// individual chat conversation interface
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { doc, getDoc } from 'firebase/firestore';
@@ -29,7 +30,7 @@ const ChatPage: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
 
-  // Initialize the conversation - handle both direct user ID and conversation ID cases
+  // initialize the conversation 
   useEffect(() => {
     const initializeConversation = async () => {
       if (!id || typeof id !== 'string' || !user) return;
@@ -37,19 +38,18 @@ const ChatPage: React.FC = () => {
       try {
         setLoading(true);
         
-        // First check if the ID is a valid conversation ID
+        // first check if the ID is a valid conversation ID
         const conversationRef = doc(db, 'conversations', id);
         const conversationDoc = await getDoc(conversationRef);
         
         if (conversationDoc.exists()) {
-          // This is a valid conversation ID, use it directly
           const conversationData = conversationDoc.data() as ChatConversation;
           setConversation({
             ...conversationData,
             id: conversationDoc.id
           });
           
-          // Determine which user is the other person
+          // determine which user is the other person
           const otherUserId = conversationData.participants.find(uid => uid !== user.uid) || '';
           
           setOtherUser({
@@ -60,17 +60,15 @@ const ChatPage: React.FC = () => {
           
           setConversationId(id);
         } else {
-          // Check if it's a valid user ID
+          // check if it's a valid user ID
           const userRef = doc(db, 'users', id);
           const userDoc = await getDoc(userRef);
           
           if (userDoc.exists()) {
-            // This is a valid user ID, create or get a conversation
             const userData = userDoc.data();
             const newConversationId = await getOrCreateConversation(user.uid, id);
             setConversationId(newConversationId);
             
-            // Fetch the newly created conversation
             const newConversationRef = doc(db, 'conversations', newConversationId);
             const newConversationDoc = await getDoc(newConversationRef);
             
@@ -90,17 +88,14 @@ const ChatPage: React.FC = () => {
               throw new Error('Failed to create conversation');
             }
           } else {
-            // Check if it's a valid match ID
             const matchRef = doc(db, 'matches', id);
             const matchDoc = await getDoc(matchRef);
             
             if (matchDoc.exists()) {
-              // Found a match, get the other user's ID
               const matchData = matchDoc.data();
               const otherUserId = matchData.userIds.find((userId: string) => userId !== user.uid);
               
               if (otherUserId) {
-                // Create a conversation from the match
                 const newConversationId = await getOrCreateConversation(
                   user.uid, 
                   otherUserId,
@@ -108,7 +103,7 @@ const ChatPage: React.FC = () => {
                 );
                 setConversationId(newConversationId);
                 
-                // Fetch the newly created conversation
+                // fetch the newly created conversation
                 const newConversationRef = doc(db, 'conversations', newConversationId);
                 const newConversationDoc = await getDoc(newConversationRef);
                 
@@ -135,7 +130,7 @@ const ChatPage: React.FC = () => {
                 return;
               }
             } else {
-              // No valid ID found
+              // no valid ID found
               console.error('Invalid ID - not a conversation, user, or match');
               router.push('/friends');
               return;
@@ -154,7 +149,7 @@ const ChatPage: React.FC = () => {
     initializeConversation();
   }, [id, user, router]);
 
-  // Subscribe to messages
+  // subscribe to messages
   useEffect(() => {
     if (!conversationId || !user) return;
     
@@ -163,7 +158,7 @@ const ChatPage: React.FC = () => {
       (updatedMessages) => {
         setMessages(updatedMessages);
         
-        // Mark messages as read
+        // mark messages as read
         markConversationMessagesAsRead(conversationId, user.uid).catch(err => {
           console.error('Error marking messages as read:', err);
         });
@@ -173,7 +168,7 @@ const ChatPage: React.FC = () => {
     return () => unsubscribe();
   }, [conversationId, user]);
 
-  // Auto-scroll to bottom when new messages arrive
+  // auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);

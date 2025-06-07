@@ -13,7 +13,9 @@ import {
 import { db } from '@/services/firebase';
 import { getPacificTime } from './timeUtils';
 
-// OpenAI Integration for Enhanced Analytics
+// user engagement tracking and insights generation
+
+// OpenAI Integration for analytics
 interface OpenAIAnalysisRequest {
   userData: {
     posts: any[];
@@ -71,16 +73,16 @@ export interface WeeklyReport {
   musicInsights: MusicPreferenceInsights;
   insights: string[];
   recommendations: string[];
-  aiGeneratedInsights?: OpenAIInsights; // Enhanced AI insights
+  aiGeneratedInsights?: OpenAIInsights; 
   generatedAt: Date;
 }
 
 /**
- * Generate enhanced insights using OpenAI API
+ *  enhanced insights using OpenAI API
  */
 const generateOpenAIInsights = async (analysisData: OpenAIAnalysisRequest): Promise<OpenAIInsights | null> => {
   try {
-    // Prepare the prompt for OpenAI
+
     const prompt = `
 You are a music psychology expert analyzing a user's weekly music engagement data. 
 Please provide personalized insights based on this data:
@@ -137,8 +139,8 @@ Keep insights personal, encouraging, and music-focused. Be specific about their 
 };
 
 /**
- * Generate comprehensive weekly analytics for a user with AI enhancement
- * Can generate reports for any week, supporting historical analysis from the 1st of each month
+ * generate comprehensive weekly analytics for a user with AI enhancement
+ * can generate reports for any week, supporting historical analysis from the 1st of each month
  */
 export const generateWeeklyAnalytics = async (userId: string, weekStart?: Date): Promise<WeeklyReport> => {
   const startDate = weekStart || getWeekStart();
@@ -149,28 +151,22 @@ export const generateWeeklyAnalytics = async (userId: string, weekStart?: Date):
   console.log(`Generating analytics for ${userId} from ${startDate.toISOString()} to ${endDate.toISOString()}`);
 
   try {
-    // Fetch user's posts for the specific week with time boundaries
     const userPosts = await getUserWeeklyPosts(userId, startDate, endDate);
     console.log(`Found ${userPosts.length} posts for the week`);
     
-    // Fetch user's engagement activities for the specific week
     const userEngagement = await getUserWeeklyEngagement(userId, startDate, endDate);
     console.log(`Found engagement: ${userEngagement.likes?.length || 0} likes, ${userEngagement.comments?.length || 0} comments, ${userEngagement.matches?.length || 0} matches`);
     
-    // Get user profile for AI analysis
     const userDoc = await getDoc(doc(db, 'users', userId));
     const userProfile = userDoc.exists() ? userDoc.data() : {};
     
-    // Analyze mood patterns
     const moodAnalysis = analyzeMoodPatterns(userPosts, userEngagement);
     
-    // Calculate engagement metrics
     const engagementMetrics = calculateEngagementMetrics(userEngagement);
     
-    // Generate music preference insights
     const musicInsights = await generateMusicInsights(userId, userPosts, userEngagement);
     
-    // Try to get AI-enhanced insights
+    // try to get AI-enhanced insights
     let aiGeneratedInsights: OpenAIInsights | null = null;
     try {
       const openAIResult = await generateOpenAIInsights({
@@ -185,14 +181,13 @@ export const generateWeeklyAnalytics = async (userId: string, weekStart?: Date):
       
       if (openAIResult) {
         aiGeneratedInsights = openAIResult;
-        console.log('✅ AI insights generated successfully');
+        console.log(' AI insights generated successfully');
       }
     } catch (aiError) {
       console.warn('AI insights generation failed, using fallback:', aiError);
       aiGeneratedInsights = null;
     }
     
-    // Generate fallback insights and recommendations (enhanced by AI if available)
     const insights = aiGeneratedInsights?.personalizedInsights || 
                     generateInsights(moodAnalysis, engagementMetrics, musicInsights, startDate, endDate);
     
@@ -211,15 +206,13 @@ export const generateWeeklyAnalytics = async (userId: string, weekStart?: Date):
       generatedAt: getPacificTime()
     };
 
-    // Only include aiGeneratedInsights if it's not null
     if (aiGeneratedInsights) {
       report.aiGeneratedInsights = aiGeneratedInsights;
     }
 
-    // Save the report to Firestore
     await saveWeeklyReport(userId, report);
     
-    console.log('✅ Weekly analytics generated and saved successfully');
+    console.log(' Weekly analytics generated and saved successfully');
     return report;
   } catch (error) {
     console.error('Error generating weekly analytics:', error);
@@ -228,7 +221,7 @@ export const generateWeeklyAnalytics = async (userId: string, weekStart?: Date):
 };
 
 /**
- * Get the start of the current week (Monday) in Pacific Time
+ * get the start of the current week (Monday) in Pacific Time
  */
 const getWeekStart = (): Date => {
   const now = getPacificTime();
@@ -238,7 +231,7 @@ const getWeekStart = (): Date => {
 };
 
 /**
- * Fetch user's posts for a specific week
+ * fetch user's posts for a specific week
  */
 const getUserWeeklyPosts = async (userId: string, startDate: Date, endDate: Date) => {
   const postsQuery = query(
@@ -258,10 +251,10 @@ const getUserWeeklyPosts = async (userId: string, startDate: Date, endDate: Date
 };
 
 /**
- * Fetch user's engagement activities for a specific week
+ * fetch user's engagement activities for a specific week
  */
 const getUserWeeklyEngagement = async (userId: string, startDate: Date, endDate: Date) => {
-  // Get likes (swipes right)
+  // get likes (swipes right)
   const likesQuery = query(
     collection(db, 'swipes'),
     where('swiperId', '==', userId),
@@ -270,7 +263,7 @@ const getUserWeeklyEngagement = async (userId: string, startDate: Date, endDate:
     where('timestamp', '<=', Timestamp.fromDate(endDate))
   );
 
-  // Get comments
+  // get comments
   const commentsQuery = query(
     collection(db, 'comments'),
     where('userId', '==', userId),
@@ -278,7 +271,7 @@ const getUserWeeklyEngagement = async (userId: string, startDate: Date, endDate:
     where('createdAt', '<=', Timestamp.fromDate(endDate))
   );
 
-  // Get matches
+  // get matches
   const matchesQuery = query(
     collection(db, 'matches'),
     where('userIds', 'array-contains', userId),
@@ -300,19 +293,17 @@ const getUserWeeklyEngagement = async (userId: string, startDate: Date, endDate:
 };
 
 /**
- * Analyze mood patterns from posts and engagement
+ * analyze mood patterns from posts and engagement
  */
 const analyzeMoodPatterns = (posts: any[], engagement: any): MoodAnalysis[] => {
   const moodCounts: { [key: string]: number } = {};
   
-  // Count moods from posts
+  // count moods from posts
   posts.forEach(post => {
     const mood = post.mood || 'Unknown';
     moodCounts[mood] = (moodCounts[mood] || 0) + 1;
   });
 
-  // Count moods from liked posts (if available in engagement data)
-  // This would require fetching the posts that were liked
   
   const totalPosts = posts.length;
   const moodAnalysis: MoodAnalysis[] = [];
@@ -322,7 +313,7 @@ const analyzeMoodPatterns = (posts: any[], engagement: any): MoodAnalysis[] => {
       mood,
       count,
       percentage: totalPosts > 0 ? (count / totalPosts) * 100 : 0,
-      trend: 'stable' // This would need historical comparison
+      trend: 'stable' 
     });
   });
 
@@ -330,12 +321,12 @@ const analyzeMoodPatterns = (posts: any[], engagement: any): MoodAnalysis[] => {
 };
 
 /**
- * Calculate engagement metrics
+ * calculate engagement metrics
  */
 const calculateEngagementMetrics = (engagement: any): EngagementMetrics => {
   return {
     postsLiked: engagement.likes?.length || 0,
-    postsShared: 0, // Not implemented yet
+    postsShared: 0, 
     commentsGiven: engagement.comments?.length || 0,
     matchesReceived: engagement.matches?.length || 0,
     avgEngagementScore: calculateEngagementScore(engagement)
@@ -343,29 +334,27 @@ const calculateEngagementMetrics = (engagement: any): EngagementMetrics => {
 };
 
 /**
- * Calculate overall engagement score (0-100)
+ * calculate overall engagement score
  */
 const calculateEngagementScore = (engagement: any): number => {
   const likes = engagement.likes?.length || 0;
   const comments = engagement.comments?.length || 0;
   const matches = engagement.matches?.length || 0;
 
-  // Weight different engagement types
   const score = (likes * 1) + (comments * 3) + (matches * 10);
   
-  // Normalize to 0-100 scale (adjust as needed)
   return Math.min(100, score);
 };
 
 /**
- * Generate music preference insights
+ * generate music preference insights
  */
 const generateMusicInsights = async (userId: string, posts: any[], engagement: any): Promise<MusicPreferenceInsights> => {
   const genres: string[] = [];
   const audioFeatures: any[] = [];
   const moodProgression: any[] = [];
 
-  // Analyze user's own posts
+
   posts.forEach(post => {
     if (post.song?.genres) {
       genres.push(...post.song.genres);
@@ -374,7 +363,7 @@ const generateMusicInsights = async (userId: string, posts: any[], engagement: a
       audioFeatures.push(post.song.audioFeatures);
     }
     
-    // Track mood progression
+    // track mood progression
     moodProgression.push({
       date: post.createdAt?.toISOString().split('T')[0],
       mood: post.mood,
@@ -382,7 +371,7 @@ const generateMusicInsights = async (userId: string, posts: any[], engagement: a
     });
   });
 
-  // Count genre preferences
+  // count genre preferences
   const genreCounts: { [key: string]: number } = {};
   genres.forEach(genre => {
     genreCounts[genre] = (genreCounts[genre] || 0) + 1;
@@ -393,7 +382,7 @@ const generateMusicInsights = async (userId: string, posts: any[], engagement: a
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
-  // Calculate average audio features
+  // calculate average audio features
   let avgAudioFeatures = {
     valence: 0.5,
     energy: 0.5,
@@ -429,7 +418,7 @@ const generateMusicInsights = async (userId: string, posts: any[], engagement: a
 };
 
 /**
- * Generate time-relevant AI-powered insights
+ * generate time-relevant AI-powered insights
  */
 const generateInsights = (
   moodAnalysis: MoodAnalysis[], 
@@ -440,31 +429,28 @@ const generateInsights = (
 ): string[] => {
   const insights: string[] = [];
 
-  // Get time period context
   const weekNumber = getWeekNumber(startDate);
   const month = startDate.toLocaleDateString('en-US', { month: 'long' });
   const isCurrentWeek = isDateInCurrentWeek(startDate);
   const timeContext = isCurrentWeek ? 'this week' : `the week of ${startDate.toLocaleDateString()}`;
 
-  // Mood insights with time context
   if (moodAnalysis.length > 0) {
     const topMood = moodAnalysis[0];
     insights.push(`During ${timeContext}, your dominant mood was ${topMood.mood.toLowerCase()}, appearing in ${topMood.percentage.toFixed(1)}% of your posts.`);
     
-    // Add seasonal context if not current week
     if (!isCurrentWeek) {
       insights.push(`Looking back at ${month}, you were exploring ${topMood.mood.toLowerCase()} music during this period.`);
     }
   }
 
-  // Engagement insights with temporal context
+  // engagement insights with temporal context
   if (engagement.postsLiked > 10) {
     insights.push(`You were very active during ${timeContext}, liking ${engagement.postsLiked} posts. ${isCurrentWeek ? "You're engaging well with the community!" : "You had strong engagement during this period!"}`);
   } else if (engagement.postsLiked < 3) {
     insights.push(`${isCurrentWeek ? "You liked fewer posts this week." : `You had lighter engagement during ${timeContext}.`} Consider exploring more music to discover new favorites!`);
   }
 
-  // Music insights with time relevance
+  // music insights with time relevance
   if (musicInsights.avgAudioFeatures.valence > 0.7) {
     insights.push(`Your music choices during ${timeContext} were very upbeat and positive, with high happiness levels. ${isCurrentWeek ? "Great for maintaining good vibes!" : "This was a particularly bright period in your music journey!"}`);
   } else if (musicInsights.avgAudioFeatures.valence < 0.3) {
@@ -475,12 +461,12 @@ const generateInsights = (
     insights.push(`You gravitated toward high-energy tracks during ${timeContext} - ${isCurrentWeek ? "perfect for staying motivated!" : "a high-energy period in your listening history!"}`);
   }
 
-  // Match insights with time context
+  // match insights with time context
   if (engagement.matchesReceived > 0) {
     insights.push(`You made ${engagement.matchesReceived} new connection${engagement.matchesReceived === 1 ? '' : 's'} during ${timeContext} through shared music taste!`);
   }
 
-  // Weekly progression insights for current week
+  // weekly progression insights for current week
   if (isCurrentWeek && moodAnalysis.length > 1) {
     insights.push(`You've shown good mood diversity this week, expressing ${moodAnalysis.length} different emotional states through music.`);
   }
@@ -489,7 +475,7 @@ const generateInsights = (
 };
 
 /**
- * Generate time-relevant personalized recommendations
+ * generate time-relevant personalized recommendations
  */
 const generateRecommendations = (
   moodAnalysis: MoodAnalysis[], 
@@ -502,7 +488,7 @@ const generateRecommendations = (
   const isCurrentWeek = isDateInCurrentWeek(startDate);
   const timeContext = isCurrentWeek ? 'this week' : 'going forward';
 
-  // Engagement recommendations with time awareness
+  // engagement recommendations with time awareness
   if (engagement.postsLiked < 5) {
     recommendations.push(`${isCurrentWeek ? "Try exploring more posts in the Discover feed" : "Consider increasing your exploration of"} new music to find songs that resonate with you.`);
   }
@@ -511,17 +497,17 @@ const generateRecommendations = (
     recommendations.push(`${isCurrentWeek ? "Consider leaving comments on posts you enjoy" : "Try engaging more with the community through comments"} - it's a great way to connect with others!`);
   }
 
-  // Mood diversity recommendations
+  // mood diversity recommendations
   if (moodAnalysis.length === 1) {
     recommendations.push(`${isCurrentWeek ? "Try posting songs that represent different moods" : "Consider exploring a wider range of emotional expressions in your music"} to show your full emotional range.`);
   }
 
-  // Music discovery recommendations based on historical patterns
+  // music discovery recommendations based on historical patterns
   if (musicInsights.topGenres.length < 3) {
     recommendations.push(`${isCurrentWeek ? "Experiment with different genres" : "Based on your patterns, try exploring new genres"} to expand your musical palette and find new matches.`);
   }
 
-  // Energy-based recommendations with seasonal awareness
+  // energy-based recommendations with seasonal awareness
   if (musicInsights.avgAudioFeatures.energy < 0.4) {
     const currentMonth = getPacificTime().getMonth();
     const isWinter = currentMonth === 11 || currentMonth === 0 || currentMonth === 1;
@@ -533,7 +519,7 @@ const generateRecommendations = (
     }
   }
 
-  // Weekly goal recommendations for current week
+  // weekly goal recommendations for current week
   if (isCurrentWeek) {
     recommendations.push("Set a goal to discover at least 3 new songs this week that match your current mood.");
   }
@@ -541,9 +527,7 @@ const generateRecommendations = (
   return recommendations;
 };
 
-/**
- * Check if a date is in the current week
- */
+
 const isDateInCurrentWeek = (date: Date): boolean => {
   const now = getPacificTime();
   const currentWeekStart = getWeekStart();
@@ -553,9 +537,7 @@ const isDateInCurrentWeek = (date: Date): boolean => {
   return date >= currentWeekStart && date < currentWeekEnd;
 };
 
-/**
- * Get week number of the year
- */
+
 const getWeekNumber = (date: Date): number => {
   const startOfYear = new Date(date.getFullYear(), 0, 1);
   const pastDaysOfYear = (date.getTime() - startOfYear.getTime()) / 86400000;
@@ -563,7 +545,7 @@ const getWeekNumber = (date: Date): number => {
 };
 
 /**
- * Save weekly report to Firestore
+ * save weekly report to Firestore
  */
 const saveWeeklyReport = async (userId: string, report: WeeklyReport): Promise<void> => {
   const reportId = `${userId}_${report.weekStart.toISOString().split('T')[0]}`;
@@ -578,7 +560,7 @@ const saveWeeklyReport = async (userId: string, report: WeeklyReport): Promise<v
 };
 
 /**
- * Get user's latest weekly report
+ * get user's latest weekly report
  */
 export const getLatestWeeklyReport = async (userId: string): Promise<WeeklyReport | null> => {
   try {
@@ -609,7 +591,7 @@ export const getLatestWeeklyReport = async (userId: string): Promise<WeeklyRepor
 };
 
 /**
- * Check if user has a report for current week
+ * check if user has a report for current week
  */
 export const hasCurrentWeekReport = async (userId: string): Promise<boolean> => {
   const weekStart = getWeekStart();
@@ -626,38 +608,29 @@ export const hasCurrentWeekReport = async (userId: string): Promise<boolean> => 
 };
 
 /**
- * Generate analytics for a specific week by date
- * Useful for historical analysis from the 1st of each month
+ * generate analytics for a specific week by date
  */
 export const generateAnalyticsForWeek = async (userId: string, weekStartDate: Date): Promise<WeeklyReport> => {
-  // Ensure the date is set to the start of the day
   const normalizedStartDate = new Date(weekStartDate);
   normalizedStartDate.setHours(0, 0, 0, 0);
   
   return await generateWeeklyAnalytics(userId, normalizedStartDate);
 };
 
-/**
- * Get all possible week start dates for a given month
- * Users can generate reports for any of these weeks
- */
+
 export const getAvailableWeeksForMonth = (year: number, month: number): Date[] => {
   const firstOfMonth = new Date(year, month, 1);
   const lastOfMonth = new Date(year, month + 1, 0);
   
   const weeks: Date[] = [];
   
-  // Start from the first Monday of the month (or before if month starts mid-week)
   let currentDate = new Date(firstOfMonth);
   const firstDayOfWeek = currentDate.getDay();
   
-  // Adjust to get the Monday of the week containing the 1st
   const daysToSubtract = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
   currentDate.setDate(currentDate.getDate() - daysToSubtract);
   
-  // Generate all week starts that overlap with the month
   while (currentDate <= lastOfMonth) {
-    // Include this week if it has any days in the target month
     const weekEnd = new Date(currentDate);
     weekEnd.setDate(weekEnd.getDate() + 6);
     
@@ -671,22 +644,16 @@ export const getAvailableWeeksForMonth = (year: number, month: number): Date[] =
   return weeks;
 };
 
-/**
- * Check if analytics can be generated for a specific week
- * (Ensures the week has ended or is the current week)
- */
+
 export const canGenerateAnalyticsForWeek = (weekStartDate: Date): boolean => {
   const now = getPacificTime();
   const weekEndDate = new Date(weekStartDate);
   weekEndDate.setDate(weekEndDate.getDate() + 7);
   
-  // Can generate if week has ended or is current week
   return weekEndDate <= now || isDateInCurrentWeek(weekStartDate);
 };
 
-/**
- * Get formatted week display string
- */
+
 export const getWeekDisplayString = (weekStartDate: Date): string => {
   const weekEndDate = new Date(weekStartDate);
   weekEndDate.setDate(weekEndDate.getDate() + 6);

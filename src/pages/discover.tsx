@@ -1,3 +1,4 @@
+// swipe-based user discovery feed
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { doc, getDoc } from 'firebase/firestore';
@@ -23,8 +24,8 @@ interface Post {
     previewUrl?: string;
   };
   caption: string;
-  mediaUrl?: string; // Keep for backward compatibility
-  mediaUrls?: string[]; // New field for multiple photos
+  mediaUrl?: string; 
+  mediaUrls?: string[]; 
   audioFeatures?: {
     valence: number;
     energy: number;
@@ -48,25 +49,25 @@ const Discover: React.FC = () => {
   const router = useRouter();
   const { user, userData, refreshUserData } = useAuth();
 
-  // If user is not logged in, redirect to home
+  // if user is not logged in, redirect to home
   useEffect(() => {
     if (!user) {
       router.push('/');
       return;
     }
     
-    // If userData hasn't loaded yet, wait for it
+    // if userData hasn't loaded yet, wait for it
     if (userData === undefined) {
       return;
     }
     
-    // Simple check: if user hasn't posted today, redirect to post-song
+    // simple check: if user hasn't posted today, redirect to post-song
     if (userData && userData.hasPostedToday === false) {
       router.push('/post-song');
     }
   }, [user, userData, router]);
 
-  // Fetch posts from Firestore using intelligent matching
+  // fetch posts from Firestore 
   useEffect(() => {
     const fetchPosts = async () => {
       if (!user) return;
@@ -74,20 +75,18 @@ const Discover: React.FC = () => {
       setIsLoading(true);
       
       try {
-        console.log('🔍 Starting intelligent matching for user:', user.uid);
+        console.log('Starting intelligent matching for user:', user.uid);
         
-        // First try intelligent matching algorithm (max 15 posts per day)
         const intelligentMatches = await getIntelligentMatches(user.uid);
         
-        console.log(`🎯 Intelligent matching returned ${intelligentMatches.length} matches`);
+        console.log(` Intelligent matching returned ${intelligentMatches.length} matches`);
         
         if (intelligentMatches.length > 0) {
-          // Convert to the format expected by the UI
+          // convert to the format expected by the UI
           const fetchedPosts: Post[] = [];
           
           for (const match of intelligentMatches) {
             try {
-              // Get user details for the post author
               const userDoc = await getDoc(doc(db, 'users', match.userId));
               const userData = userDoc.exists() ? userDoc.data() : null;
               
@@ -111,9 +110,9 @@ const Discover: React.FC = () => {
                 moodTags: match.moodTags || [match.mood]
               });
             } catch (err: any) {
-              // Handle individual post processing errors gracefully
+              // handle individual post processing errors gracefully
               if (err.message?.includes('ERR_BLOCKED_BY_CLIENT') || err.toString().includes('blocked')) {
-                console.warn(`⚠️ Post ${match.id} blocked by ad blocker - skipping`);
+                console.warn(` Post ${match.id} blocked by ad blocker - skipping`);
               } else {
                 console.error(`Error processing intelligent match ${match.id}:`, err);
               }
@@ -125,10 +124,10 @@ const Discover: React.FC = () => {
           return;
         }
         
-        // Fallback to original method if intelligent matching returns no results
+        // fallback to original method
         console.log('No intelligent matches found, falling back to original method');
         
-        // Get IDs of posts that haven't been swiped yet
+        // get IDs of posts that haven't been swiped yet
         const unswipedPostIds = await getUnswiped(user.uid);
         
         if (unswipedPostIds.length === 0) {
@@ -137,10 +136,10 @@ const Discover: React.FC = () => {
           return;
         }
         
-        // Limit to 15 posts maximum per day
+        // limit to 15 posts maximum per day
         const limitedPostIds = unswipedPostIds.slice(0, 15);
         
-        // Fetch full post data for each unswiped post
+        // fetch full post data for each unswiped post
         const fetchedPosts: Post[] = [];
         
         for (const postId of limitedPostIds) {
@@ -150,7 +149,6 @@ const Discover: React.FC = () => {
             if (postDoc.exists()) {
               const postData = postDoc.data();
               
-              // Get user details
               const userDoc = await getDoc(doc(db, 'users', postData.userId));
               const userData = userDoc.exists() ? userDoc.data() : null;
               
@@ -181,9 +179,9 @@ const Discover: React.FC = () => {
               });
             }
           } catch (err: any) {
-            // Handle individual post fetch errors gracefully
+            // handle individual post fetch errors 
             if (err.message?.includes('ERR_BLOCKED_BY_CLIENT') || err.toString().includes('blocked')) {
-              console.warn(`⚠️ Post ${postId} blocked by ad blocker - skipping`);
+              console.warn(` Post ${postId} blocked by ad blocker - skipping`);
             } else {
               console.error(`Error fetching post ${postId}:`, err);
             }
@@ -192,10 +190,9 @@ const Discover: React.FC = () => {
         
         setPosts(fetchedPosts);
       } catch (error: any) {
-        // Handle overall fetch errors with specific messaging for blocking
         if (error.message?.includes('ERR_BLOCKED_BY_CLIENT') || error.toString().includes('blocked')) {
-          console.warn('⚠️ Discover feed blocked by ad blocker - showing empty state');
-          console.info('💡 To fix this: Try disabling ad blockers or use an incognito window');
+          console.warn(' Discover feed blocked by ad blocker - showing empty state');
+          console.info(' To fix this: Try disabling ad blockers or use an incognito window');
         } else {
           console.error('Error fetching posts:', error);
         }
@@ -208,9 +205,7 @@ const Discover: React.FC = () => {
     fetchPosts();
   }, [user]);
 
-  // Handle audio playback
   useEffect(() => {
-    // Stop audio when changing cards
     if (audioRef.current) {
       audioRef.current.pause();
       setIsPlaying(false);
@@ -228,7 +223,7 @@ const Discover: React.FC = () => {
     }
   };
 
-  // Swipe handlers
+  // swipe handlers
   const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
     setIsDragging(true);
     if ('touches' in e) {
@@ -255,14 +250,12 @@ const Discover: React.FC = () => {
   const handleTouchEnd = () => {
     setIsDragging(false);
     
-    // If swiped far enough, handle like/dislike
     if (offsetX > 100) {
       handleLike();
     } else if (offsetX < -100) {
       handleDislike();
     }
     
-    // Reset position
     setOffsetX(0);
   };
 
@@ -272,7 +265,6 @@ const Discover: React.FC = () => {
     try {
       const post = posts[currentIndex];
       
-      // Record the swipe in Firestore and check for a match
       const matchId = await recordSwipe(
         user.uid,
         post.id,
@@ -280,11 +272,10 @@ const Discover: React.FC = () => {
         'right'
       );
       
-      // If there's a match, show it
       if (matchId) {
         setMatchFound(matchId);
         
-        // Store this match in local storage to ensure we can recover if navigation fails
+        // store this match in local storage to ensure we can recover if navigation fails
         try {
           localStorage.setItem('lastMatchId', matchId);
           localStorage.setItem('lastMatchTime', new Date().toISOString());
@@ -292,18 +283,16 @@ const Discover: React.FC = () => {
           console.error('Failed to store match in localStorage:', storageError);
         }
         
-        // After a few seconds, hide the match animation and continue to the next post
         setTimeout(() => {
           setMatchFound(null);
           setCurrentIndex(currentIndex + 1);
         }, 3000);
       } else {
-        // Just move to next post
         setCurrentIndex(currentIndex + 1);
       }
     } catch (error) {
       console.error('Error recording like:', error);
-      // Still move to next post even if there's an error
+      // still move to next post even if there's an error
       setCurrentIndex(currentIndex + 1);
     }
   };
@@ -314,7 +303,7 @@ const Discover: React.FC = () => {
     try {
       const post = posts[currentIndex];
       
-      // Record the swipe in Firestore
+      // record the swipe in Firestore
       await recordSwipe(
         user.uid,
         post.id,
@@ -322,16 +311,16 @@ const Discover: React.FC = () => {
         'left'
       );
       
-      // Move to next post
+      // move to next post
       setCurrentIndex(currentIndex + 1);
     } catch (error) {
       console.error('Error recording dislike:', error);
-      // Still move to next post even if there's an error
+      // still move to next post even if there's an error
       setCurrentIndex(currentIndex + 1);
     }
   };
 
-  // Calculate card styles based on drag position
+  // calculate card styles based on drag position
   const cardStyle = {
     transform: `translateX(${offsetX}px) rotate(${offsetX * 0.05}deg)`,
     opacity: offsetX !== 0 ? 1 - Math.min(Math.abs(offsetX) / 500, 0.5) : 1,
@@ -339,7 +328,7 @@ const Discover: React.FC = () => {
 
   if (!user) return null;
 
-  // Display loading state
+  // display loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-light-100 dark:bg-dark-100 flex flex-col justify-center items-center p-4">
@@ -349,7 +338,7 @@ const Discover: React.FC = () => {
     );
   }
 
-  // Match found overlay
+  // match found overlay
   if (matchFound) {
     return (
       <div className="min-h-screen bg-light-100 dark:bg-dark-100 flex flex-col justify-center items-center p-4 text-center">
@@ -368,7 +357,7 @@ const Discover: React.FC = () => {
     );
   }
 
-  // All cards viewed
+  // all cards viewed
   if (currentIndex >= posts.length) {
     return (
       <div className="min-h-screen bg-light-100 dark:bg-dark-100 flex flex-col justify-center items-center p-4 text-center">
@@ -404,7 +393,6 @@ const Discover: React.FC = () => {
     );
   }
 
-  // Current post
   const currentPost = posts[currentIndex];
 
   return (
@@ -451,7 +439,7 @@ const Discover: React.FC = () => {
               </button>
             )}
             
-            {/* Audio element (hidden) */}
+            {/* Audio element */}
             {currentPost.song.previewUrl && (
               <audio
                 ref={audioRef}
@@ -512,7 +500,7 @@ const Discover: React.FC = () => {
               </div>
             )}
             
-            {/* Photo carousel if multiple photos exist, or single photo */}
+            {/* Photo carousel or single photo */}
             {(currentPost.mediaUrls && currentPost.mediaUrls.length > 0) ? (
               <div className="mt-3 rounded-lg overflow-hidden h-48">
                 <PhotoCarousel

@@ -3,7 +3,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 
-// Initialize Firebase Admin if not already initialized
+// initialize Firebase Admin 
 if (!getApps().length) {
   initializeApp({
     credential: cert({
@@ -17,26 +17,25 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Only accept GET requests
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { code, error, state } = req.query;
 
-  // Handle Spotify auth error
+  // handle Spotify auth error
   if (error) {
     console.error('Spotify auth error:', error);
     return res.redirect(`/settings?error=${error}`);
   }
 
-  // Ensure auth code was provided
+  // ensure auth code was provided
   if (!code) {
     return res.status(400).json({ error: 'Missing authorization code' });
   }
 
   try {
-    // Exchange authorization code for access token
+    // exchange authorization code for access token
     const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
       headers: {
@@ -60,7 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const tokenData = await tokenResponse.json();
 
-    // Get Spotify user profile to match with our user
+    // get Spotify user profile to match with our user
     const profileResponse = await fetch('https://api.spotify.com/v1/me', {
       headers: {
         'Authorization': `Bearer ${tokenData.access_token}`,
@@ -74,8 +73,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const profileData = await profileResponse.json();
 
-    // Verify the Firebase ID token in cookie or session
-    // This is a simplified version. In a real app, you'd use a session cookie or state parameter
+    // verify the Firebase ID token in cookie or session
     const idToken = req.cookies.firebaseToken;
     
     if (!idToken) {
@@ -86,10 +84,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const decodedToken = await getAuth().verifyIdToken(idToken);
       const uid = decodedToken.uid;
 
-      // Calculate token expiration time
+      // calculate token expiration time
       const expiresAt = Date.now() + tokenData.expires_in * 1000;
 
-      // Store Spotify tokens and profile in user document
+      // store Spotify tokens and profile in user document
       await db.collection('users').doc(uid).update({
         spotify: {
           tokens: {
@@ -108,7 +106,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         spotifyConnected: true,
       });
 
-      // Redirect to settings page with success message
+      // redirect to settings page 
       return res.redirect('/settings?success=spotify_connected');
     } catch (error) {
       console.error('Error verifying Firebase token:', error);

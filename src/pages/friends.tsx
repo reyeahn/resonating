@@ -1,3 +1,4 @@
+// friends list and social feed management
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { 
@@ -46,7 +47,7 @@ interface User {
   status: FriendStatus;
 }
 
-// Local interface for component-specific friend request display
+// local interface for friend request display
 interface LocalFriendRequest {
   id: string;
   senderId: string;
@@ -71,8 +72,8 @@ interface Post {
   comments: number;
   createdAt: Date;
   likedBy?: string[];
-  mediaUrl?: string; // Keep for backward compatibility
-  mediaUrls?: string[]; // New field for multiple photos
+  mediaUrl?: string; 
+  mediaUrls?: string[]; 
 }
 
 const Friends: React.FC = () => {
@@ -92,7 +93,7 @@ const Friends: React.FC = () => {
   const router = useRouter();
   const { user, userData } = useAuth();
 
-  // Fetch friends and requests when component mounts
+  // fetch friends and requests when component mounts
   useEffect(() => {
     if (user) {
       fetchFriends();
@@ -100,7 +101,6 @@ const Friends: React.FC = () => {
     }
   }, [user]);
 
-  // Check for tab query parameter
   useEffect(() => {
     const { tab } = router.query;
     if (tab === 'requests') {
@@ -118,24 +118,21 @@ const Friends: React.FC = () => {
     }
   }, [user, activeTab]);
 
-  // Refresh requests when viewing requests tab
   useEffect(() => {
     if (user && activeTab === 'requests') {
       fetchRequests();
     }
   }, [user, activeTab]);
 
-  // Fetch friends
+  // fetch friends
   const fetchFriends = async () => {
     if (!user) return;
     
     setIsLoading(true);
     
     try {
-      // Get real friends from Firestore
       const friendsList = await getUserFriendsService(user.uid);
       
-      // Map to our component's User format
       const mappedFriends = friendsList.map(friend => ({
         uid: friend.id,
         displayName: friend.displayName,
@@ -147,22 +144,19 @@ const Friends: React.FC = () => {
     } catch (error) {
       console.error('Error fetching friends:', error);
       
-      // Fallback to empty array if error occurs
       setFriends([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Fetch friend requests
+  // fetch friend requests
   const fetchRequests = async () => {
     if (!user) return;
     
     try {
-      // Get real pending friend requests from Firestore
       const pendingRequests = await getPendingFriendRequests(user.uid);
       
-      // Map to our component's LocalFriendRequest format
       const formattedRequests: LocalFriendRequest[] = pendingRequests.map((request: FriendRequestType) => ({
         id: request.id,
         senderId: request.fromUserId,
@@ -175,12 +169,11 @@ const Friends: React.FC = () => {
       setRequests(formattedRequests);
     } catch (error) {
       console.error('Error fetching friend requests:', error);
-      // Keep empty array on error
       setRequests([]);
     }
   };
 
-  // Search for users
+  // search for users
   const handleSearch = async () => {
     if (!searchQuery.trim() || !user) return;
     
@@ -188,13 +181,12 @@ const Friends: React.FC = () => {
     setSearchResults([]);
     
     try {
-      // Find users matching the search query
       const foundUsers = await findUsers(searchQuery, user.uid);
       
-      // For each user, determine their friendship status with the current user
+      // for each user, determine their friendship status with the current user
       const resultsWithStatus = await Promise.all(
         foundUsers.map(async (foundUser) => {
-          // Check if they're already friends
+          // check if they're already friends
           const isFriend = friends.some(friend => friend.uid === foundUser.id);
           if (isFriend) {
             return {
@@ -205,7 +197,7 @@ const Friends: React.FC = () => {
             };
           }
           
-          // Check if there's a pending request from current user to this user
+          // check if there's a pending request 
           const pendingSentQuery = query(
             collection(db, 'friendRequests'),
             where('fromUserId', '==', user.uid),
@@ -222,7 +214,7 @@ const Friends: React.FC = () => {
             };
           }
           
-          // Check if there's a pending request from this user to current user
+          // check if there's a pending request from this user to current user
           const pendingReceivedQuery = query(
             collection(db, 'friendRequests'),
             where('fromUserId', '==', foundUser.id),
@@ -239,7 +231,7 @@ const Friends: React.FC = () => {
             };
           }
           
-          // If none of the above, they're not friends
+          // if none of the above, they're not friends
           return {
             uid: foundUser.id,
             displayName: foundUser.displayName,
@@ -258,29 +250,26 @@ const Friends: React.FC = () => {
     }
   };
 
-  // Send friend request
+  // send friend request
   const sendFriendRequest = async (targetUserId: string) => {
     if (!user) return;
     
     try {
-      // Get current user's display name
       const displayName = userData?.displayName || user.displayName || 'User';
       
-      // Send the friend request via service
+      // send the friend request via service
       await sendFriendRequestService(
         user.uid,
         targetUserId,
         displayName
       );
       
-      // Update UI state
       setSearchResults(
         searchResults.map((u) =>
           u.uid === targetUserId ? { ...u, status: 'pending_sent' } : u
         )
       );
       
-      // Show success message
       alert('Friend request sent!');
     } catch (error) {
       console.error('Error sending friend request:', error);
@@ -288,38 +277,31 @@ const Friends: React.FC = () => {
     }
   };
 
-  // Cancel friend request
+  // cancel friend request
   const cancelFriendRequest = async (targetUserId: string) => {
     if (!user) return;
     
     try {
-      // In a production app, you would update Firestore
-      // Update local state for demonstration
       setSearchResults(
         searchResults.map((u) =>
           u.uid === targetUserId ? { ...u, status: 'not_friend' } : u
         )
       );
       
-      // Show success message
       alert('Friend request canceled');
     } catch (error) {
       console.error('Error canceling friend request:', error);
     }
   };
 
-  // Accept friend request
   const acceptFriendRequest = async (requestId: string, senderId: string) => {
     if (!user) return;
     
     try {
-      // Call the real service to accept the request in Firestore
       await acceptFriendRequestService(requestId);
       
-      // Update local state
       setRequests(requests.filter((r) => r.id !== requestId));
       
-      // Add to friends list
       const senderRequest = requests.find((r) => r.id === requestId);
       if (senderRequest) {
         setFriends([
@@ -333,41 +315,34 @@ const Friends: React.FC = () => {
         ]);
       }
       
-      // Show success message
       alert('Friend request accepted');
     } catch (error) {
       console.error('Error accepting friend request:', error);
     }
   };
 
-  // Reject friend request
+  // reject friend request
   const rejectFriendRequest = async (requestId: string) => {
     if (!user) return;
     
     try {
-      // Call the real service to reject the request in Firestore
       await rejectFriendRequestService(requestId);
       
-      // Update local state
       setRequests(requests.filter((r) => r.id !== requestId));
       
-      // Show success message
       alert('Friend request rejected');
     } catch (error) {
       console.error('Error rejecting friend request:', error);
     }
   };
 
-  // Remove friend
+  // remove friend
   const removeFriend = async (friendId: string) => {
     if (!user) return;
     
     try {
-      // In a production app, you would update Firestore
-      // Update local state for demonstration
       setFriends(friends.filter((f) => f.uid !== friendId));
       
-      // Show success message
       alert('Friend removed');
     } catch (error) {
       console.error('Error removing friend:', error);
@@ -380,7 +355,6 @@ const Friends: React.FC = () => {
     try {
       setLoading(true);
       
-      // Get real feed posts from Firestore using our service
       const realPosts = await getFeedPosts(user.uid);
       
       if (realPosts.length > 0) {
@@ -391,7 +365,7 @@ const Friends: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching posts:', error);
-      // Only use mock data in case of an error
+      // use mock data in case of an error
       const mockPosts: Post[] = [
         {
           id: 'post1',
@@ -402,7 +376,7 @@ const Friends: React.FC = () => {
           songArtist: 'The Weeknd, Daft Punk',
           songAlbumArt: 'https://i.scdn.co/image/ab67616d0000b2734718e2b124f79258be7bc452',
           mood: 'Confident',
-          caption: 'This track is on another level 🌟',
+          caption: 'This track is on another level ',
           likes: 15,
           comments: 4,
           createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
@@ -418,7 +392,7 @@ const Friends: React.FC = () => {
           songArtist: 'The Weeknd',
           songAlbumArt: 'https://i.scdn.co/image/ab67616d0000b273c5649add07ed3720be9d5526',
           mood: 'Energetic',
-          caption: 'Perfect for my morning run! 🏃‍♀️',
+          caption: 'Perfect for my morning run! ',
           likes: 23,
           comments: 7,
           createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
@@ -427,7 +401,6 @@ const Friends: React.FC = () => {
         }
       ];
       
-      // Only use mock data if there's no real posts
       if (posts.length === 0) {
         setPosts(mockPosts);
       }
@@ -438,10 +411,10 @@ const Friends: React.FC = () => {
 
   const fetchComments = async (postId: string) => {
     try {
-      // Get real comments using the comments service
+      // get real comments using the comments service
       const postComments = await getPostComments(postId);
       
-      // Update the comments state with the fetched comments
+      // update the comments state with the fetched comments
       setComments(prev => ({ 
         ...prev, 
         [postId]: postComments 
@@ -449,7 +422,7 @@ const Friends: React.FC = () => {
     } catch (error) {
       console.error('Error fetching comments:', error);
       
-      // Fallback to mock comments only if necessary
+      // fallback to mock comments if necessary
       const mockComments = [
         {
           id: `mock-${Date.now()}`,
@@ -473,20 +446,15 @@ const Friends: React.FC = () => {
     if (!user) return;
 
     try {
-      // Find the post to update locally
       const post = posts.find(p => p.id === postId);
       
       if (!post) return;
       
-      // Check if user has already liked the post
       const userLiked = post.likedBy?.includes(user.uid);
       
-      // Call the real likePost service to update Firestore
       await likePost(postId, user.uid);
       
-      // Update local state for immediate UI feedback
       if (userLiked) {
-        // User already liked the post, so unlike it
         setPosts(posts.map(post => 
           post.id === postId 
             ? { 
@@ -497,7 +465,6 @@ const Friends: React.FC = () => {
             : post
         ));
       } else {
-        // User hasn't liked the post, so like it
         setPosts(posts.map(post => 
           post.id === postId 
             ? { 
@@ -510,7 +477,7 @@ const Friends: React.FC = () => {
       }
     } catch (error) {
       console.error('Error liking post:', error);
-      // Optionally refresh posts to ensure UI is in sync with backend
+      // optionally refresh posts to ensure UI is in sync with backend
       fetchPosts();
     }
   };
@@ -519,18 +486,15 @@ const Friends: React.FC = () => {
     if (!user || !newComment.trim()) return;
 
     try {
-      // Call the real addComment service
       const commentId = await addComment(
         postId,
         user.uid,
         newComment.trim()
       );
       
-      // Get the user's display name and photo URL for the new comment
       const userDisplayName = userData?.displayName || user.displayName || 'You';
       const userPhotoURL = userData?.photoURL || user.photoURL;
       
-      // Create a new comment object for the UI update
       const newCommentObj = {
         id: commentId || `temp-${Date.now()}`,
         userId: user.uid,
@@ -540,20 +504,19 @@ const Friends: React.FC = () => {
         createdAt: new Date(),
       };
       
-      // Add the comment to the local state
+      // add the comment to the local state
       setComments(prev => ({
         ...prev,
         [postId]: [...(prev[postId] || []), newCommentObj]
       }));
       
-      // Update the post's comment count in the local state
+      // update the post's comment count in the local state
       setPosts(posts.map(post => 
         post.id === postId 
           ? { ...post, comments: post.comments + 1 }
           : post
       ));
       
-      // Clear the input
       setNewComment('');
     } catch (error) {
       console.error('Error adding comment:', error);
@@ -701,7 +664,7 @@ const Friends: React.FC = () => {
                         <p className="text-gray-700 dark:text-gray-300 mb-4">{post.caption}</p>
                       )}
 
-                      {/* Photo carousel if multiple photos exist, or single photo */}
+                      {/* Photo carousel or single photo */}
                       {(post.mediaUrls && post.mediaUrls.length > 0) ? (
                         <div className="mb-4 rounded-lg overflow-hidden h-40">
                           <PhotoCarousel

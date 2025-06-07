@@ -9,6 +9,7 @@ interface AppLayoutProps {
   hideNav?: boolean;
 }
 
+// main app layout wrapper
 const AppLayout: React.FC<AppLayoutProps> = ({ 
   children, 
   title = 'MusicConnect',
@@ -16,7 +17,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
 }) => {
   const { user } = useAuth();
   
-  // Only show navigation when user is logged in
+  // only show navigation when user is logged in
   const showNav = user && !hideNav;
   
   return (

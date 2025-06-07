@@ -1,9 +1,11 @@
 /**
- * Firebase Setup Helper Script
  * 
- * This script helps developers set up Firebase configuration for the MusicConnect app.
- * It prompts for Firebase credentials and creates a .env.local file.
+ * 
+ * set up Firebase configuration
+ * 
  */
+
+// firebase project initialization script
 
 const fs = require('fs');
 const path = require('path');
@@ -17,7 +19,7 @@ const rl = readline.createInterface({
 const envFilePath = path.join(__dirname, '..', '.env.local');
 const envExamplePath = path.join(__dirname, '..', 'env.example');
 
-// Check if .env.local already exists
+// check if .env.local already exists
 if (fs.existsSync(envFilePath)) {
   console.log('\x1b[33m%s\x1b[0m', '.env.local file already exists. Do you want to overwrite it? (y/n)');
   rl.question('', (answer) => {
@@ -51,7 +53,7 @@ function promptForCredentials() {
 
   const askQuestion = (index) => {
     if (index >= questions.length) {
-      // All questions answered, now ask about Spotify
+      // All questions answered
       console.log('\n\x1b[36m%s\x1b[0m', 'Do you want to configure Spotify API credentials now? (y/n)');
       rl.question('', (answer) => {
         if (answer.toLowerCase() === 'y') {
@@ -94,7 +96,6 @@ function askSpotifyCredentials(credentials) {
 }
 
 function createEnvFile(credentials) {
-  // Read the example file to preserve comments and structure
   fs.readFile(envExamplePath, 'utf8', (err, data) => {
     if (err) {
       console.error('\x1b[31m%s\x1b[0m', 'Error reading env.example file:', err);
@@ -102,14 +103,14 @@ function createEnvFile(credentials) {
       return;
     }
 
-    // Replace placeholder values with actual credentials
+    
     let envContent = data;
     Object.keys(credentials).forEach(key => {
       const regex = new RegExp(`${key}=.*`, 'g');
       envContent = envContent.replace(regex, `${key}=${credentials[key]}`);
     });
 
-    // Write to .env.local
+    // write to .env.local
     fs.writeFile(envFilePath, envContent, 'utf8', (err) => {
       if (err) {
         console.error('\x1b[31m%s\x1b[0m', 'Error writing .env.local file:', err);

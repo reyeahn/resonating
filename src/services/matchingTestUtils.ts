@@ -1,15 +1,11 @@
-// Testing utilities for the matching algorithm
+// testing utilities for matching system
 import { getIntelligentMatches, updateUserMusicPreferences } from './matchingAlgorithm';
 import { createPost } from './posts';
 
-/**
- * Test suite for matching algorithm functionality
- */
+
 export class MatchingAlgorithmTester {
   
-  /**
-   * Create test users with different musical profiles
-   */
+
   static async createTestUsers() {
     const testProfiles = [
       {
@@ -48,9 +44,7 @@ export class MatchingAlgorithmTester {
     return testProfiles;
   }
 
-  /**
-   * Create test posts with varied audio features
-   */
+
   static async createTestPosts() {
     const testPosts = [
       {
@@ -93,14 +87,11 @@ export class MatchingAlgorithmTester {
     return testPosts;
   }
 
-  /**
-   * Test compatibility scoring between specific users
-   */
+ 
   static async testCompatibilityScoring(userId: string) {
     console.log(`\n=== Testing Compatibility Scoring for User: ${userId} ===`);
     
     try {
-      // Get intelligent matches
       const matches = await getIntelligentMatches(userId);
       
       console.log(`Found ${matches.length} intelligent matches`);
@@ -126,9 +117,6 @@ export class MatchingAlgorithmTester {
     }
   }
 
-  /**
-   * Test the daily limit enforcement (should return max 15 posts)
-   */
   static async testDailyLimit(userId: string) {
     console.log(`\n=== Testing Daily Limit for User: ${userId} ===`);
     
@@ -138,10 +126,10 @@ export class MatchingAlgorithmTester {
       console.log(`Returned ${matches.length} matches (should be <= 15)`);
       
       if (matches.length > 15) {
-        console.error('❌ FAILED: Daily limit not enforced');
+        console.error(' FAILED: Daily limit not enforced');
         return false;
       } else {
-        console.log('✅ PASSED: Daily limit enforced correctly');
+        console.log(' PASSED: Daily limit enforced correctly');
         return true;
       }
       
@@ -151,27 +139,25 @@ export class MatchingAlgorithmTester {
     }
   }
 
-  /**
-   * Test preference learning system
-   */
+
   static async testPreferenceLearning(userId: string) {
     console.log(`\n=== Testing Preference Learning for User: ${userId} ===`);
     
     try {
       await updateUserMusicPreferences(userId);
-      console.log('✅ PASSED: Preferences updated based on engagement history');
+      console.log(' PASSED: Preferences updated based on engagement history');
       return true;
     } catch (error) {
-      console.error('❌ FAILED: Error updating preferences:', error);
+      console.error(' FAILED: Error updating preferences:', error);
       return false;
     }
   }
 
   /**
-   * Run comprehensive test suite
+   * run comprehensive test suite
    */
   static async runFullTestSuite() {
-    console.log('🧪 Starting Matching Algorithm Test Suite...\n');
+    console.log(' Starting Matching Algorithm Test Suite...\n');
     
     const testUsers = await this.createTestUsers();
     await this.createTestPosts();
@@ -180,33 +166,27 @@ export class MatchingAlgorithmTester {
     let totalTests = 0;
     
     for (const user of testUsers) {
-      // Test compatibility scoring
       await this.testCompatibilityScoring(user.uid);
       
-      // Test daily limit
       totalTests++;
       if (await this.testDailyLimit(user.uid)) passedTests++;
       
-      // Test preference learning
       totalTests++;
       if (await this.testPreferenceLearning(user.uid)) passedTests++;
     }
     
-    console.log(`\n🏁 Test Suite Complete: ${passedTests}/${totalTests} tests passed`);
+    console.log(`\n Test Suite Complete: ${passedTests}/${totalTests} tests passed`);
     
     if (passedTests === totalTests) {
-      console.log('🎉 All tests passed! Matching algorithm is working correctly.');
+      console.log(' All tests passed! Matching algorithm is working correctly.');
     } else {
-      console.log('⚠️  Some tests failed. Please review the implementation.');
+      console.log('  Some tests failed. Please review the implementation.');
     }
     
     return passedTests === totalTests;
   }
 }
 
-/**
- * Quick test function for development
- */
 export const quickTestMatching = async (userId: string) => {
   console.log(`Quick test for user: ${userId}`);
   const tester = new MatchingAlgorithmTester();

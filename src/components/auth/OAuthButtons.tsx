@@ -1,10 +1,11 @@
+// social login integration buttons
 import React from 'react';
 import { FaGoogle, FaSpotify } from 'react-icons/fa';
 import Button from '../common/Button';
 
 interface OAuthButtonsProps {
   onGoogleSignIn: () => Promise<void>;
-  onSpotifySignIn?: () => Promise<void>; // Optional as it might not be implemented yet
+  onSpotifySignIn?: () => Promise<void>; 
   isLoading?: boolean;
 }
 

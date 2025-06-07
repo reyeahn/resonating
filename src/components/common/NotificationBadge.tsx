@@ -1,6 +1,7 @@
 import React from 'react';
 import { FaBell } from 'react-icons/fa';
 
+// unread count indicator badge
 interface NotificationBadgeProps {
   count: number;
   className?: string;

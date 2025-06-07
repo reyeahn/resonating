@@ -1,3 +1,4 @@
+// daily song posts with 24-hour lifecycle management
 import { 
   collection, 
   addDoc, 
@@ -32,8 +33,8 @@ export interface Post {
   comments: number;
   createdAt: Date;
   likedBy?: string[];
-  mediaUrl?: string; // Keep for backward compatibility
-  mediaUrls?: string[]; // New field for multiple photos
+  mediaUrl?: string; 
+  mediaUrls?: string[]; 
   song?: {
     title: string;
     artist: string;
@@ -58,7 +59,7 @@ export interface Comment {
 }
 
 /**
- * Check if a post is still active (within 24-hour window from 9am PST to 9am PST next day)
+ * Check if a post is still active
  */
 export const isPostActive = (postCreatedAt: any): boolean => {
   return isAfterLastReset(postCreatedAt);
@@ -72,7 +73,7 @@ export const filterActivePosts = (posts: Post[]): Post[] => {
 };
 
 /**
- * Get all active posts (created after last 9am PST reset)
+ * Get all active posts 
  */
 export const getActivePosts = async (): Promise<Post[]> => {
   try {
@@ -82,7 +83,7 @@ export const getActivePosts = async (): Promise<Post[]> => {
       collection(db, 'posts'),
       where('createdAt', '>', Timestamp.fromDate(lastReset)),
       orderBy('createdAt', 'desc'),
-      limit(100) // Reasonable limit for active posts
+      limit(100) 
     );
 
     const snapshot = await getDocs(postsQuery);
@@ -103,7 +104,7 @@ export const getActivePosts = async (): Promise<Post[]> => {
 };
 
 /**
- * Get user's active posts only
+ * get user's active posts only
  */
 export const getUserPosts = async (userId: string): Promise<Post[]> => {
   try {
@@ -134,13 +135,13 @@ export const getUserPosts = async (userId: string): Promise<Post[]> => {
 };
 
 /**
- * Clean up expired posts (should be run daily via cron job or scheduled function)
+ * clean up expired posts 
  */
 export const cleanupExpiredPosts = async (): Promise<void> => {
   try {
     const lastReset = getLastResetTime();
     
-    // Get all posts older than last reset
+    // get all posts older than last reset
     const expiredPostsQuery = query(
       collection(db, 'posts'),
       where('createdAt', '<', Timestamp.fromDate(lastReset))
@@ -153,7 +154,7 @@ export const cleanupExpiredPosts = async (): Promise<void> => {
       return;
     }
 
-    // Use batch to delete expired posts efficiently
+    // use batch to delete expired posts efficiently
     const batch = writeBatch(db);
     let deleteCount = 0;
 
@@ -165,7 +166,7 @@ export const cleanupExpiredPosts = async (): Promise<void> => {
     await batch.commit();
     console.log(`Cleaned up ${deleteCount} expired posts`);
 
-    // Also clean up related swipes and comments for expired posts
+    // also clean up related swipes and comments for expired posts
     await cleanupRelatedData(snapshot.docs.map(doc => doc.id));
 
   } catch (error) {
@@ -174,14 +175,14 @@ export const cleanupExpiredPosts = async (): Promise<void> => {
 };
 
 /**
- * Clean up swipes and comments for expired posts
+ * clean up swipes and comments for expired posts
  */
 const cleanupRelatedData = async (expiredPostIds: string[]): Promise<void> => {
   try {
     const batch = writeBatch(db);
     let cleanupCount = 0;
 
-    // Clean up swipes for expired posts
+
     for (const postId of expiredPostIds) {
       const swipesQuery = query(
         collection(db, 'swipes'),
@@ -217,7 +218,7 @@ const cleanupRelatedData = async (expiredPostIds: string[]): Promise<void> => {
 };
 
 /**
- * Create a new post with optional audio features
+ * create a new post with optional audio features
  */
 export const createPost = async (
   userId: string,
@@ -241,10 +242,9 @@ export const createPost = async (
     audioFeatures?: any;
     genres?: string[];
   },
-  mediaUrls?: string[] // Add support for multiple media URLs
+  mediaUrls?: string[] 
 ): Promise<string> => {
   try {
-    // Create the post document with required fields
     const postData: any = {
       userId,
       userDisplayName,
@@ -258,10 +258,10 @@ export const createPost = async (
       comments: 0,
       createdAt: Timestamp.fromDate(getPacificTime()),
       updatedAt: Timestamp.fromDate(getPacificTime()),
-      moodTags: [mood] // Add mood tags array for better analytics
+      moodTags: [mood] 
     };
     
-    // Add optional Spotify fields if they exist
+    // add optional Spotify fields if they exist
     if (spotifyId) {
       postData.spotifyId = spotifyId;
     }
@@ -270,32 +270,29 @@ export const createPost = async (
       postData.previewUrl = previewUrl;
     }
     
-    // Add media URLs if they exist
+ 
     if (mediaUrls && mediaUrls.length > 0) {
       postData.mediaUrls = mediaUrls;
-      // Keep the old single mediaUrl for backward compatibility
+
       postData.mediaUrl = mediaUrls[0];
     }
     
-    // Add audio features at the top level (for backward compatibility)
     if (audioFeatures) {
       postData.audioFeatures = audioFeatures;
     }
     
-    // Add the full song object (preferred structure for new features)
     if (songObject) {
       postData.song = songObject;
     } else {
-      // Create song object from individual parameters
       const songData: any = {
         title: songTitle,
         artist: songArtist,
-        album: songArtist, // Use artist as fallback for album
+        album: songArtist, 
         coverArtUrl: songAlbumArt,
-        genres: [] // Empty array for now, could be enhanced later
+        genres: [] 
       };
       
-      // Only add optional fields if they have values
+      // only add optional fields if they have values
       if (spotifyId) {
         songData.spotifyId = spotifyId;
       }
@@ -325,18 +322,17 @@ export const getFeedPosts = async (userId: string): Promise<Post[]> => {
   try {
     const lastReset = getLastResetTime();
     
-    // Get user's friends
+    // get user's friends
     const userRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userRef);
     const userData = userDoc.data();
     const friendIds = userData?.friends || [];
 
-    // If no friends, return empty array
     if (friendIds.length === 0) {
       return [];
     }
 
-    // Query ACTIVE posts only from friends (excluding the current user)
+    // query ACTIVE posts only from friends 
     const postsQuery = query(
       collection(db, 'posts'),
       where('userId', 'in', friendIds),
@@ -352,7 +348,7 @@ export const getFeedPosts = async (userId: string): Promise<Post[]> => {
       createdAt: doc.data().createdAt?.toDate()
     })) as Post[];
     
-    // Get the actual comment counts for each post
+    // get the actual comment counts for each post
     // by querying the comments collection
     for (let post of posts) {
       const commentsQuery = query(
@@ -361,7 +357,6 @@ export const getFeedPosts = async (userId: string): Promise<Post[]> => {
       );
       
       const commentsSnapshot = await getDocs(commentsQuery);
-      // Update the post's comment count to the actual number
       (post as any).comments = commentsSnapshot.size;
     }
 
@@ -373,7 +368,7 @@ export const getFeedPosts = async (userId: string): Promise<Post[]> => {
 };
 
 /**
- * Like/Unlike a post
+ * like/Unlike a post
  */
 export const likePost = async (postId: string, userId: string): Promise<void> => {
   try {
@@ -389,14 +384,14 @@ export const likePost = async (postId: string, userId: string): Promise<void> =>
     const userLiked = likedBy.includes(userId);
 
     if (userLiked) {
-      // Unlike the post
+      // unlike the post
       const updatedLikedBy = likedBy.filter((id: string) => id !== userId);
       await updateDoc(postRef, {
         likes: Math.max(0, (postData.likes || 0) - 1),
         likedBy: updatedLikedBy
       });
     } else {
-      // Like the post
+      // like the post
       await updateDoc(postRef, {
         likes: (postData.likes || 0) + 1,
         likedBy: [...likedBy, userId]
@@ -409,7 +404,7 @@ export const likePost = async (postId: string, userId: string): Promise<void> =>
 };
 
 /**
- * Add a comment to a post
+ * add a comment to a post
  */
 export const addComment = async (
   postId: string,
@@ -417,7 +412,7 @@ export const addComment = async (
   content: string
 ): Promise<string> => {
   try {
-    // Add comment document
+    // add comment document
     const commentRef = await addDoc(collection(db, 'comments'), {
       postId,
       userId,
@@ -425,7 +420,7 @@ export const addComment = async (
       createdAt: Timestamp.fromDate(getPacificTime())
     });
 
-    // Update post comment count
+    // update post comment count
     const postRef = doc(db, 'posts', postId);
     const postDoc = await getDoc(postRef);
     
@@ -444,7 +439,7 @@ export const addComment = async (
 };
 
 /**
- * Get comments for a post
+ * get comments for a post
  */
 export const getPostComments = async (postId: string): Promise<Comment[]> => {
   try {
@@ -480,7 +475,7 @@ export const getPostComments = async (postId: string): Promise<Comment[]> => {
   }
 };
 
-// Get a specific post by ID
+// get a specific post by ID
 export const getPostById = async (postId: string): Promise<Post | null> => {
   try {
     const postDoc = await getDoc(doc(db, 'posts', postId));
@@ -501,13 +496,13 @@ export const getPostById = async (postId: string): Promise<Post | null> => {
 };
 
 /**
- * Get recent posts for discover feed (active posts only, excluding user's own)
+ * get recent posts for discover feed 
  */
 export const getDiscoverPosts = async (userId: string, limitCount: number = 15): Promise<Post[]> => {
   try {
     const lastReset = getLastResetTime();
     
-    // Get active posts excluding user's own posts
+    // get active posts excluding user's own posts
     const postsQuery = query(
       collection(db, 'posts'),
       where('userId', '!=', userId),
@@ -534,21 +529,18 @@ export const getDiscoverPosts = async (userId: string, limitCount: number = 15):
   }
 };
 
-// Get posts from users that the current user has matched with (ACTIVE POSTS ONLY)
-// EXCLUDES posts from users who are already friends
+// get posts from users that the current user has matched with (ACTIVE POSTS ONLY)
+
 export const getMatchFeedPosts = async (userId: string): Promise<Post[]> => {
   try {
     console.log(`Getting match feed posts for user: ${userId}`);
     
-    // Use the new matches service to get matched user posts
-    // This automatically filters for active posts within 24-hour window
-    // AND excludes users who are already friends
+
     const { getMatchedUsersPosts } = await import('./matches');
     const matchedPosts = await getMatchedUsersPosts(userId);
     
     console.log(`Found ${matchedPosts.length} active posts from matched users (excluding friends)`);
     
-    // Convert MatchedUserPost[] to Post[] format for compatibility
     const posts: Post[] = matchedPosts.map(matchedPost => ({
       id: matchedPost.id,
       userId: matchedPost.userId,
@@ -565,8 +557,8 @@ export const getMatchFeedPosts = async (userId: string): Promise<Post[]> => {
       comments: matchedPost.comments,
       createdAt: matchedPost.createdAt,
       likedBy: [],
-      mediaUrl: matchedPost.mediaUrl, // Include single photo
-      mediaUrls: matchedPost.mediaUrls // Include multiple photos
+      mediaUrl: matchedPost.mediaUrl, 
+      mediaUrls: matchedPost.mediaUrls 
     }));
     
     return posts;
@@ -577,11 +569,11 @@ export const getMatchFeedPosts = async (userId: string): Promise<Post[]> => {
 };
 
 /**
- * Get user's posts for profile gallery (shows current month's posts)
+ * get user's posts for profile gallery (shows current month's posts)
  */
 export const getUserProfilePosts = async (userId: string): Promise<Post[]> => {
   try {
-    // Get start of current month (Pacific Time)
+    // get start of current month (Pacific Time)
     const pacificNow = getPacificTime();
     const currentMonthStart = new Date(pacificNow.getFullYear(), pacificNow.getMonth(), 1);
     
@@ -609,15 +601,11 @@ export const getUserProfilePosts = async (userId: string): Promise<Post[]> => {
   }
 };
 
-/**
- * Get user's archived posts (posts older than current month)
- * Returns posts grouped by month
- */
+
 export const getUserArchivedPosts = async (userId: string): Promise<{
   [monthYear: string]: Post[]
 }> => {
   try {
-    // Get start of current month (Pacific Time)
     const pacificNow = getPacificTime();
     const currentMonthStart = new Date(pacificNow.getFullYear(), pacificNow.getMonth(), 1);
     
@@ -637,7 +625,6 @@ export const getUserArchivedPosts = async (userId: string): Promise<{
         ...doc.data()
       } as Post;
       
-      // Group by month-year
       const postDate = post.createdAt instanceof Date ? post.createdAt : post.createdAt.toDate();
       const monthYear = `${postDate.getFullYear()}-${String(postDate.getMonth() + 1).padStart(2, '0')}`;
       
@@ -654,13 +641,11 @@ export const getUserArchivedPosts = async (userId: string): Promise<{
   }
 };
 
-/**
- * Get posts from a specific month for a user
- */
+
 export const getUserPostsByMonth = async (
   userId: string, 
   year: number, 
-  month: number // 1-based month (1 = January)
+  month: number 
 ): Promise<Post[]> => {
   try {
     const monthStart = new Date(year, month - 1, 1);

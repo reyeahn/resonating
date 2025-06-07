@@ -1,3 +1,4 @@
+// tailwind css theme customization and design system
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [

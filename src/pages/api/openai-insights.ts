@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
-// Define the expected structure of OpenAI insights
+// ai-powered user analytics generation
+
 interface OpenAIInsights {
   personalizedInsights: string[];
   musicTasteAnalysis: string;
@@ -26,7 +27,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(503).json({ error: 'OpenAI service not available' });
     }
 
-    // Dynamic import to handle missing package gracefully
     let OpenAI;
     try {
       const openaiModule = await import('openai');
@@ -36,13 +36,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(503).json({ error: 'OpenAI service not available' });
     }
 
-    // Initialize OpenAI client
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4-1106-preview', // More stable model
+      model: 'gpt-4-1106-preview', 
       messages: [
         {
           role: 'system',
@@ -63,25 +62,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       throw new Error('No response from OpenAI');
     }
 
-    // Parse the JSON response
     let insights: OpenAIInsights;
     try {
-      // Clean the response to handle markdown code blocks
+      // clean the response to handle markdown code blocks
       let cleanedResponse = responseText.trim();
       
-      // Remove markdown code block markers if present
       if (cleanedResponse.startsWith('```json')) {
         cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
       } else if (cleanedResponse.startsWith('```')) {
         cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
       }
       
-      // Final trim to ensure clean JSON
+      // final trim to ensure clean JSON
       cleanedResponse = cleanedResponse.trim();
       
       insights = JSON.parse(cleanedResponse) as OpenAIInsights;
       
-      // Validate required fields
+      // validate required fields
       const requiredFields = ['personalizedInsights', 'musicTasteAnalysis', 'moodPatternAnalysis', 'engagementAdvice', 'weeklyHighlights'];
       const missingFields = requiredFields.filter(field => !insights[field as keyof OpenAIInsights]);
       
@@ -103,7 +100,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error) {
     console.error('OpenAI API Error:', error);
     
-    // Return structured error response
+    // return structured error response
     if (error instanceof Error) {
       return res.status(500).json({ 
         error: 'Failed to generate insights',

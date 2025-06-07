@@ -1,3 +1,4 @@
+// other users' profile viewing
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { doc, getDoc } from 'firebase/firestore';
@@ -25,8 +26,8 @@ interface Post {
   comments: number;
   createdAt: Date;
   likedBy?: string[];
-  mediaUrl?: string; // Keep for backward compatibility
-  mediaUrls?: string[]; // New field for multiple photos
+  mediaUrl?: string; 
+  mediaUrls?: string[]; 
 }
 
 interface UserData {
@@ -104,10 +105,8 @@ const UserProfile: React.FC = () => {
     if (!user) return;
     
     try {
-      // Get current user's friends
       const friends = await getUserFriends(user.uid);
       
-      // Check if target user is already a friend
       const isFriend = friends.some(friend => friend.id === userId);
       
       if (isFriend) {
@@ -115,7 +114,6 @@ const UserProfile: React.FC = () => {
         return;
       }
       
-      // Check for pending friend requests
       const requestsQuery = await getDoc(doc(db, 'friendRequests', `${user.uid}_${userId}`));
       
       if (requestsQuery.exists()) {

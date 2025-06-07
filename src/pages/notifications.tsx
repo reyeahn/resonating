@@ -1,3 +1,4 @@
+// notification center and alerts display
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '@/hooks/useAuth';
@@ -42,7 +43,7 @@ const Notifications: React.FC = () => {
       await markNotificationAsRead(notification.id);
       setNotifications(notifications.filter(n => n.id !== notification.id));
 
-      // Navigate based on notification type
+      // navigate based on notification type
       switch (notification.type) {
         case 'friend_request':
           router.push('/friends?tab=requests');

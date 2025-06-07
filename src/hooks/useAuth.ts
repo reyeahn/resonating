@@ -1,3 +1,4 @@
+// authentication state management hook
 import { useState, useEffect, useCallback } from 'react';
 import { User, updateProfile } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -86,7 +87,7 @@ export const useAuth = (): AuthHook => {
         if (userDoc.exists()) {
           const data = userDoc.data();
           
-          // Calculate hasPostedToday based on Pacific Time logic with fallback
+          // calculate hasPostedToday based on Pacific Time
           const calculatedHasPostedToday = checkHasPostedToday(data.lastPostDate, data.lastPostDateManual);
           
           setUserData({ 
@@ -95,25 +96,23 @@ export const useAuth = (): AuthHook => {
             hasPostedToday: calculatedHasPostedToday
           } as UserData);
 
-          // Run one-time migration for matches (only once per user)
           if (!data.matchesMigrated) {
             try {
               console.log('Running one-time match migration...');
               await migrateExistingMatches();
               
-              // Mark migration as complete for this user
               await setDoc(userDocRef, { 
                 ...data,
                 matchesMigrated: true 
               }, { merge: true });
               
-              console.log('✅ Match migration completed for user');
+              console.log('Match migration completed for user');
             } catch (migrationError) {
               console.error('Migration failed, but continuing:', migrationError);
             }
           }
         } else {
-          // Create default user document
+          // create default user document
           const defaultUserData: Omit<UserData, 'uid'> = {
             displayName: user.displayName,
             email: user.email,
@@ -144,18 +143,18 @@ export const useAuth = (): AuthHook => {
               totalLikes: 0,
               totalComments: 0
             },
-            hasPostedToday: false, // New user hasn't posted
+            hasPostedToday: false, // new user hasn't posted
             spotifyConnected: false,
             appleConnected: false
           };
           
-          // Set the document in Firestore (with migration flag for new users)
+          // set the document in Firestore 
           await setDoc(userDocRef, { 
             ...defaultUserData, 
             matchesMigrated: true 
           });
           
-          // Set the user data in state
+          // set the user data in state
           setUserData({ uid: user.uid, ...defaultUserData } as UserData);
         }
       } catch (err) {
@@ -166,14 +165,14 @@ export const useAuth = (): AuthHook => {
     }
   }, [user]);
 
-  // Initial data fetch when user changes (REMOVED POLLING)
+  // initial data fetch when user changes 
   useEffect(() => {
     if (!loading) {
       fetchUserData();
     }
   }, [user, loading, fetchUserData]);
 
-  // Function to manually refresh user data (only when explicitly needed)
+  // function to manually refresh user data 
   const refreshUserData = async () => {
     await fetchUserData();
   };
@@ -204,10 +203,10 @@ export const useAuth = (): AuthHook => {
     }
     
     try {
-      // Update Firebase Auth profile
+      // update Firebase Auth profile
       await updateProfile(user, profileData);
       
-      // Refresh user data after update
+      // refresh user data after update
       await fetchUserData();
     } catch (error) {
       console.error('Error updating user profile:', error);

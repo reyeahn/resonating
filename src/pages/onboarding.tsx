@@ -1,10 +1,11 @@
+// new user setup and profile creation
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { useAuth } from '@/hooks/useAuth';
 
-// Define the question types
+// define the question types
 type QuestionType = {
   id: number;
   question: string;
@@ -12,7 +13,7 @@ type QuestionType = {
   options?: string[];
 };
 
-// Define the questions for the onboarding process
+// define the questions for the onboarding process
 const questions: QuestionType[] = [
   {
     id: 1,
@@ -71,7 +72,7 @@ const Onboarding: React.FC = () => {
   const router = useRouter();
   const { user, userData } = useAuth();
 
-  // If user is not logged in, redirect to home
+  // if user is not logged in, redirect to home
   if (!user) {
     typeof window !== 'undefined' && router.push('/');
     return null;
@@ -106,7 +107,7 @@ const Onboarding: React.FC = () => {
   };
 
   const handleSkip = () => {
-    // If skipped, set answer to "undisclosed"
+    // if skipped, set answer to "undisclosed"
     setAnswers({
       ...answers,
       [questions[currentQuestion].id]: 'undisclosed',
@@ -119,7 +120,6 @@ const Onboarding: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      // Map answers to the questionnaire format expected by Firestore
       const questionnaireData = {
         weekendSoundtrack: answers[1] || 'undisclosed',
         moodGenre: answers[2] || 'undisclosed',
@@ -128,14 +128,13 @@ const Onboarding: React.FC = () => {
         preferredMoodTag: answers[5] || 'undisclosed',
       };
 
-      // Update the user document in Firestore
+      // update the user document in Firestore
       const userDocRef = doc(db, 'users', user.uid);
       await updateDoc(userDocRef, {
         questionnaire: questionnaireData,
         onboardingCompleted: true,
       });
 
-      // Redirect to post song page
       router.push('/post-song');
     } catch (error) {
       console.error('Error updating questionnaire:', error);

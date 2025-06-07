@@ -1,7 +1,8 @@
+// spotify api integration for music search and playback
 import { db, auth } from './firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
-// Types
+// types
 export interface SpotifyToken {
   access_token: string;
   token_type: string;
@@ -51,27 +52,20 @@ export interface SpotifyAudioFeatures {
   time_signature: number;
 }
 
-// Spotify API base URL
 const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
 
-// Store the client credentials token and its expiration
 let clientCredentialsToken = {
   access_token: '',
   expires_at: 0
 };
 
-/**
- * Get an access token using client credentials flow (app-level access)
- * This allows the app to make requests to Spotify without user authentication
- */
+
 export const getClientCredentialsToken = async (): Promise<string> => {
   try {
-    // Check if we have a valid token already
     if (clientCredentialsToken.access_token && Date.now() < clientCredentialsToken.expires_at) {
       return clientCredentialsToken.access_token;
     }
     
-    // Request a new token from the server
     const response = await fetch('/api/spotify/client-token', {
       method: 'GET',
       headers: {
@@ -85,10 +79,8 @@ export const getClientCredentialsToken = async (): Promise<string> => {
     
     const data = await response.json();
     
-    // Calculate expiration time (subtract 60 seconds for safety)
     const expiresAt = Date.now() + (data.expires_in - 60) * 1000;
     
-    // Update the stored token
     clientCredentialsToken = {
       access_token: data.access_token,
       expires_at: expiresAt
@@ -102,7 +94,7 @@ export const getClientCredentialsToken = async (): Promise<string> => {
 };
 
 /**
- * Get Spotify tokens from user document in Firestore
+ * get Spotify tokens from user document in Firestore
  */
 export const getSpotifyTokens = async (): Promise<SpotifyToken | null> => {
   if (!auth.currentUser) return null;
@@ -114,9 +106,9 @@ export const getSpotifyTokens = async (): Promise<SpotifyToken | null> => {
     if (userDoc.exists() && userDoc.data().spotify?.tokens) {
       const tokens = userDoc.data().spotify.tokens as SpotifyToken;
       
-      // Check if token is expired
+      // check if token is expired
       if (Date.now() > tokens.expiresAt) {
-        // Token is expired, refresh it
+        // token is expired, refresh it
         return refreshSpotifyToken(tokens.refresh_token);
       }
       
@@ -131,14 +123,13 @@ export const getSpotifyTokens = async (): Promise<SpotifyToken | null> => {
 };
 
 /**
- * Refresh the Spotify access token
+ * refresh the Spotify access token
  */
 export const refreshSpotifyToken = async (refreshToken: string): Promise<SpotifyToken | null> => {
   if (!auth.currentUser) return null;
   
   try {
-    // In a real implementation, this should call a serverless function to protect the client secret
-    // For now, we'll implement this as if we're calling our own API endpoint
+
     
     const response = await fetch('/api/spotify/refresh-token', {
       method: 'POST',
@@ -154,14 +145,14 @@ export const refreshSpotifyToken = async (refreshToken: string): Promise<Spotify
     
     const data = await response.json();
     
-    // Calculate expiration time
+    // calculate expiration time
     const expiresAt = Date.now() + data.expires_in * 1000;
     const tokens: SpotifyToken = {
       ...data,
       expiresAt,
     };
     
-    // Update tokens in Firestore
+    // update tokens in Firestore
     const userDocRef = doc(db, 'users', auth.currentUser.uid);
     await updateDoc(userDocRef, {
       'spotify.tokens': tokens,
@@ -176,19 +167,16 @@ export const refreshSpotifyToken = async (refreshToken: string): Promise<Spotify
 };
 
 /**
- * Make authenticated request to Spotify API using either user token or client credentials
+ * make authenticated request to Spotify API 
  */
 export const spotifyFetch = async (endpoint: string, options: RequestInit = {}, useClientCredentials = false): Promise<any> => {
   let accessToken = '';
   
   if (useClientCredentials) {
-    // Use client credentials (app-level access)
     accessToken = await getClientCredentialsToken();
   } else {
-    // Try to use user's tokens if available
     const tokens = await getSpotifyTokens();
     if (!tokens) {
-      // Fall back to client credentials if no user tokens
       accessToken = await getClientCredentialsToken();
     } else {
       accessToken = tokens.access_token;
@@ -215,16 +203,13 @@ export const spotifyFetch = async (endpoint: string, options: RequestInit = {}, 
   return data;
 };
 
-/**
- * Search for tracks on Spotify
- */
+
 export const searchTracks = async (query: string, limit = 10): Promise<SpotifyTrack[]> => {
   try {
-    // Always use client credentials for search (doesn't require user auth)
     const data = await spotifyFetch(
       `/search?q=${encodeURIComponent(query)}&type=track&limit=${limit}`,
       {},
-      true // Use client credentials
+      true 
     );
     
     return data.tracks.items;
@@ -234,20 +219,14 @@ export const searchTracks = async (query: string, limit = 10): Promise<SpotifyTr
   }
 };
 
-/**
- * Get audio features for a track
- * NOTE: Spotify API no longer allows audio features access for most applications
- * This returns intelligent placeholder data based on available song metadata
- */
+
 export const getAudioFeatures = async (trackId: string, mood?: string, genre?: string): Promise<SpotifyAudioFeatures | null> => {
   try {
-    console.log('🎵 Getting audio features for track:', trackId);
+    console.log(' Getting audio features for track:', trackId);
     
-    // TODO: Replace with actual API call when/if Spotify access becomes available
-    // For now, generate intelligent placeholder data
     const placeholderFeatures = generatePlaceholderAudioFeatures(trackId, mood, genre);
     
-    console.log('🎵 Using placeholder audio features:', placeholderFeatures);
+    console.log(' Using placeholder audio features:', placeholderFeatures);
     return placeholderFeatures;
     
   } catch (error) {
@@ -256,24 +235,19 @@ export const getAudioFeatures = async (trackId: string, mood?: string, genre?: s
   }
 };
 
-/**
- * Generate intelligent placeholder audio features based on available metadata
- * This ensures consistent behavior while maintaining the data structure
- */
+
 const generatePlaceholderAudioFeatures = (trackId: string, mood?: string, genre?: string): SpotifyAudioFeatures => {
-  // Create deterministic but varied features based on track ID
-  // This ensures the same track always gets the same features
+
   const seed = hashString(trackId);
   const random = createSeededRandom(seed);
   
-  // Base features (moderate values)
+
   let valence = 0.5;  // happiness/positivity
   let energy = 0.6;   // intensity/power
   let danceability = 0.6; // how danceable
   let acousticness = 0.3; // acoustic vs electric
   let tempo = 120;    // BPM
   
-  // Adjust based on mood if provided
   if (mood) {
     const moodAdjustments = getMoodAdjustments(mood.toLowerCase());
     valence = Math.max(0, Math.min(1, valence + moodAdjustments.valence + (random() - 0.5) * 0.3));
@@ -283,14 +257,12 @@ const generatePlaceholderAudioFeatures = (trackId: string, mood?: string, genre?
     tempo = Math.max(60, Math.min(200, tempo + moodAdjustments.tempo + (random() - 0.5) * 40));
   }
   
-  // Add some variation based on track ID to make each song unique
   valence += (random() - 0.5) * 0.2;
   energy += (random() - 0.5) * 0.2;
   danceability += (random() - 0.5) * 0.2;
   acousticness += (random() - 0.5) * 0.2;
   tempo += (random() - 0.5) * 20;
   
-  // Ensure values are within valid ranges
   return {
     valence: Math.max(0, Math.min(1, valence)),
     energy: Math.max(0, Math.min(1, energy)),
@@ -310,7 +282,7 @@ const generatePlaceholderAudioFeatures = (trackId: string, mood?: string, genre?
 };
 
 /**
- * Get mood-based adjustments for audio features
+ * get mood-based adjustments for audio features
  */
 const getMoodAdjustments = (mood: string): {
   valence: number;
@@ -336,20 +308,20 @@ const getMoodAdjustments = (mood: string): {
 };
 
 /**
- * Create a simple hash from a string for deterministic randomness
+ * create a simple hash from a string for deterministic randomness
  */
 const hashString = (str: string): number => {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
+    hash = hash & hash; 
   }
   return Math.abs(hash);
 };
 
 /**
- * Create a seeded random number generator
+ * create a seeded random number generator
  */
 const createSeededRandom = (seed: number) => {
   let state = seed;
@@ -360,11 +332,11 @@ const createSeededRandom = (seed: number) => {
 };
 
 /**
- * Get track details
+ * get track details
  */
 export const getTrack = async (trackId: string): Promise<SpotifyTrack | null> => {
   try {
-    // Use client credentials by default (doesn't require user auth)
+    // use client credentials by default 
     return await spotifyFetch(`/tracks/${trackId}`, {}, true);
   } catch (error) {
     console.error('Error getting track:', error);
@@ -373,13 +345,13 @@ export const getTrack = async (trackId: string): Promise<SpotifyTrack | null> =>
 };
 
 /**
- * Connect user to Spotify
+ * connect user to Spotify
  */
 export const connectToSpotify = (): void => {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const redirectUri = process.env.SPOTIFY_REDIRECT_URI || 'http://localhost:3000/api/auth/callback/spotify';
   
-  // Define scopes needed for the application
+  // define scopes needed for the application
   const scopes = [
     'user-read-private',
     'user-read-email',
@@ -387,44 +359,35 @@ export const connectToSpotify = (): void => {
     'user-library-read',
   ].join(' ');
   
-  // Create the authorization URL
+  // create the authorization URL
   const authUrl = new URL('https://accounts.spotify.com/authorize');
   authUrl.searchParams.append('client_id', clientId as string);
   authUrl.searchParams.append('response_type', 'code');
   authUrl.searchParams.append('redirect_uri', redirectUri);
   authUrl.searchParams.append('scope', scopes);
   
-  // Redirect the user to the Spotify authorization page
   window.location.href = authUrl.toString();
 };
 
-/**
- * Enhanced search for tracks with preview URLs using spotify-preview-finder
- * This function tries the standard Spotify API first, then enhances results with preview finder
- */
+
 export const searchTracksWithPreviews = async (query: string, limit = 10): Promise<SpotifyTrack[]> => {
   try {
-    console.log('🎵 Starting enhanced search for:', query);
+    console.log(' Starting enhanced search for:', query);
     
-    // First, try the standard Spotify API search
     const standardTracks = await searchTracks(query, limit);
-    console.log('🎵 Standard Spotify API returned:', standardTracks.length, 'tracks');
+    console.log('Standard Spotify API returned:', standardTracks.length, 'tracks');
     
-    // If we have no tracks from standard API, return empty array
     if (!standardTracks || standardTracks.length === 0) {
-      console.log('🎵 No tracks from standard API, trying preview finder...');
+      console.log(' No tracks from standard API, trying preview finder...');
       
       try {
-        // Try using spotify-preview-finder as a fallback
         const spotifyPreviewFinder = require('spotify-preview-finder');
         const previewResult = await spotifyPreviewFinder(query, limit);
         
         if (previewResult.success && previewResult.results.length > 0) {
-          console.log('🎵 Preview finder returned:', previewResult.results.length, 'results');
+          console.log(' Preview finder returned:', previewResult.results.length, 'results');
           
-          // Convert preview finder results to our SpotifyTrack format
           const enhancedTracks: SpotifyTrack[] = previewResult.results.map((result: any) => {
-            // Extract track info from the combined name string
             const nameParts = result.name.split(' - ');
             const trackName = nameParts[0] || result.name;
             const artistName = nameParts[1] || 'Unknown Artist';
@@ -452,54 +415,53 @@ export const searchTracksWithPreviews = async (query: string, limit = 10): Promi
           return enhancedTracks;
         }
       } catch (previewError) {
-        console.log('🎵 Preview finder failed:', previewError);
+        console.log(' Preview finder failed:', previewError);
       }
       
       return [];
     }
     
-    // Enhance existing tracks with preview finder if they don't have preview URLs
-    console.log('🎵 Enhancing tracks with preview finder...');
+    // enhance existing tracks with preview finder if they don't have preview URLs
+    console.log(' Enhancing tracks with preview finder...');
     const enhancedTracks = await Promise.all(
       standardTracks.map(async (track) => {
-        // If track already has a preview URL, return as is
+        // if track already has a preview URL, return as is
         if (track.preview_url) {
-          console.log(`🎵 Track "${track.name}" already has preview URL`);
+          console.log(` Track "${track.name}" already has preview URL`);
           return track;
         }
         
         try {
-          // Try to find preview URL for this specific track
+          // try to find preview URL for this specific track
           const spotifyPreviewFinder = require('spotify-preview-finder');
           const searchQuery = `${track.name} ${track.artists[0]?.name || ''}`.trim();
           const previewResult = await spotifyPreviewFinder(searchQuery, 1);
           
           if (previewResult.success && previewResult.results.length > 0) {
             const previewUrl = previewResult.results[0].previewUrls[0];
-            console.log(`🎵 Found preview URL for "${track.name}":`, previewUrl);
+            console.log(` Found preview URL for "${track.name}":`, previewUrl);
             
             return {
               ...track,
               preview_url: previewUrl
             };
           } else {
-            console.log(`🎵 No preview found for "${track.name}"`);
+            console.log(` No preview found for "${track.name}"`);
             return track;
           }
         } catch (error) {
-          console.log(`🎵 Error finding preview for "${track.name}":`, error);
+          console.log(` Error finding preview for "${track.name}":`, error);
           return track;
         }
       })
     );
     
-    console.log('🎵 Enhanced search complete. Tracks with previews:', 
+    console.log(' Enhanced search complete. Tracks with previews:', 
       enhancedTracks.filter(t => t.preview_url).length, 'out of', enhancedTracks.length);
     
     return enhancedTracks;
   } catch (error) {
-    console.error('🎵 Error in enhanced search:', error);
-    // Fallback to standard search
+    console.error(' Error in enhanced search:', error);
     return searchTracks(query, limit);
   }
 }; 
