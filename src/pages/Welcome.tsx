@@ -94,7 +94,8 @@ const Welcome: React.FC = () => {
                 src="/images/logo_ry_3.png" 
                 alt="Resonate Logo" 
                 className="w-full h-full object-contain"
-
+              />
+          </div> 
 
           <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white">
             Resonate
