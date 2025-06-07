@@ -25,6 +25,9 @@ NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 # Spotify API Configuration
 SPOTIFY_CLIENT_ID=your_spotify_client_id
 SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+
+# OpenAI Configuration 
+OPENAI_API_KEY=your_openai_key
 ```
 
 ### Installation Steps
