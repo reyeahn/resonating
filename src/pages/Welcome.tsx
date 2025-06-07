@@ -89,13 +89,15 @@ const Welcome: React.FC = () => {
       <Container maxWidth="md">
         <div className="text-center mb-8">
           {/* Logo */}
+          <div className="flex justify-center mb-6">
            <div className="w-40 h-40 flex items-center justify-center">
               <img 
                 src="/images/logo_ry_3.png" 
                 alt="Resonate Logo" 
                 className="w-full h-full object-contain"
-
-
+              />
+            </div>
+          </div>
           <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white">
             Resonate
           </h1>
